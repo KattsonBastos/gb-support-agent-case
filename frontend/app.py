@@ -80,7 +80,7 @@ def stream_chat_response(
     message: str,
     cpf: Optional[str] = None,
 ) -> Generator[str, None, None]:
-    """Conecta ao endpoint FastAPI via streaming SSE e gera chunks de texto em tempo real."""
+    target_url = api_url if "/api/v1/chat/stream" in api_url else f"{api_url.rstrip('/')}/api/v1/chat/stream"
     payload = {
         "session_id": session_id,
         "message": message,
@@ -88,7 +88,7 @@ def stream_chat_response(
     }
 
     try:
-        with requests.post(api_url, json=payload, stream=True, timeout=60) as response:
+        with requests.post(target_url, json=payload, stream=True, timeout=60) as response:
             if response.status_code == 422:
                 try:
                     err_data = response.json()

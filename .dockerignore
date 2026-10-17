@@ -1,0 +1,43 @@
+# Arquivos compilados e caches do Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Controle de versão e IDEs
+.git/
+.gitignore
+.gitattributes
+.idea/
+.vscode/
+.cursor/
+*.swp
+*.swo
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs e arquivos temporários
+*.log
+scratch/
+
+# Variáveis de ambiente sensíveis
+.env
+.env.*
+!.env.example
+
+# Bancos de dados locais transitórios (exceto a pasta data montada)
+*.sqlite3
+!data/**

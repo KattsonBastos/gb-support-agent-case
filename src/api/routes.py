@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from fastapi import APIRouter, Request, status
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
@@ -17,16 +17,98 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["Chat"])
 templates = Jinja2Templates(directory="templates")
 
+def _setup_langchain_compat():
+    """Garante compatibilidade do CallbackHandler do Langfuse 2.x com Langchain 0.2+/1.x."""
+    import sys
+    import types
+    if "langchain.callbacks.base" not in sys.modules:
+        import langchain_core.callbacks.base
+        mod = types.ModuleType("langchain.callbacks")
+        mod_base = types.ModuleType("langchain.callbacks.base")
+        mod_base.BaseCallbackHandler = langchain_core.callbacks.base.BaseCallbackHandler
+        sys.modules["langchain.callbacks"] = mod
+        sys.modules["langchain.callbacks.base"] = mod_base
+
+    if "langchain.schema.agent" not in sys.modules:
+        mod_schema = types.ModuleType("langchain.schema")
+        mod_agent = types.ModuleType("langchain.schema.agent")
+        mod_doc = types.ModuleType("langchain.schema.document")
+        from langchain_core.documents import Document
+        from langchain_core.agents import AgentAction, AgentFinish
+        mod_agent.AgentAction = AgentAction
+        mod_agent.AgentFinish = AgentFinish
+        mod_doc.Document = Document
+        sys.modules["langchain.schema"] = mod_schema
+        sys.modules["langchain.schema.agent"] = mod_agent
+        sys.modules["langchain.schema.document"] = mod_doc
+
+
+def _get_langfuse_callback(session_id: str, user_id: Optional[str] = None):
+    """Instancia dinamicamente o LangfuseCallbackHandler conforme a spec 06-observabilidade.md."""
+    import os
+    public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.getenv("LANGFUSE_SECRET_KEY")
+    host = os.getenv("LANGFUSE_HOST", "http://langfuse:3000")
+
+    if not public_key or not secret_key:
+        return None
+
+    try:
+        _setup_langchain_compat()
+        from langfuse.callback import CallbackHandler
+        return CallbackHandler(
+            public_key=public_key,
+            secret_key=secret_key,
+            host=host,
+            session_id=session_id,
+            user_id=user_id,
+        )
+    except Exception as exc:
+        logger.warning(f"Não foi possível inicializar LangfuseCallbackHandler: {exc}")
+        return None
+
+
+def _flush_langfuse(handler=None):
+    """Garante envio imediato dos traces do Langfuse ao final do streaming."""
+    try:
+        if handler:
+            if hasattr(handler, "flush"):
+                handler.flush()
+            elif hasattr(handler, "_langfuse_client") and hasattr(handler._langfuse_client, "flush"):
+                handler._langfuse_client.flush()
+            elif hasattr(handler, "langfuse") and hasattr(handler.langfuse, "flush"):
+                handler.langfuse.flush()
+    except Exception:
+        pass
+
 
 async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]:
     """Consome o grafo LangGraph em tempo real e transmite os tokens via SSE.
 
-    Utiliza graph.astream_events(version='v2'), filtrando os nós internos de roteamento
-    e emitindo exclusivamente os tokens de texto no formato:
+    Utiliza graph.astream_events(version='v2'), filtrando os nós internos de roteamento,
+    injetando callbacks do LangFuse para observabilidade e emitindo exclusivamente os tokens
+    de texto no formato:
     data: {"chunk": "..."}\n\n
     """
     graph = get_compiled_graph()
-    config = {"configurable": {"thread_id": request.session_id}}
+
+    callbacks = []
+    langfuse_cb = _get_langfuse_callback(
+        session_id=request.session_id,
+        user_id=request.cpf,
+    )
+    if langfuse_cb:
+        callbacks.append(langfuse_cb)
+
+    config = {
+        "configurable": {"thread_id": request.session_id},
+        "callbacks": callbacks,
+        "metadata": {
+            "langfuse_session_id": request.session_id,
+            "langfuse_user_id": request.cpf,
+            "langfuse_trace_name": "gb-support-agent-chat",
+        },
+    }
 
     input_state = {
         "messages": [HumanMessage(content=request.message)],
@@ -70,6 +152,9 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
             ensure_ascii=False,
         )
         yield f"data: {error_payload}\n\n"
+    finally:
+        if langfuse_cb:
+            _flush_langfuse(langfuse_cb)
 
 
 @router.post(
@@ -120,3 +205,12 @@ async def chat_simulator_view(request: Request):
         name="chat.html",
         context={"app_name": settings.APP_NAME},
     )
+
+
+def __getattr__(name: str):
+    """Permite inicialização direta via uvicorn src.api.routes:app conforme especificação de DevOps."""
+    if name == "app":
+        from src.main import app
+        return app
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+

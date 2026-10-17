@@ -3,7 +3,7 @@
 import asyncio
 import json
 import re
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Sequence
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (

@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  # 1. Banco de Dados PostgreSQL para o LangFuse
+  db-langfuse:
+    image: postgres:15
+    container_name: gb-support-agent-db-langfuse
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    networks:
+      - agentes-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Servidor LangFuse (Observabilidade e Telemetria LLMOps)
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: gb-support-agent-langfuse
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db-langfuse:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: mysecret
+      SALT: mysalt
+      TELEMETRY_ENABLED: "false"
+    depends_on:
+      db-langfuse:
+        condition: service_healthy
+    networks:
+      - agentes-network
+
+  # 3. Backend: API FastAPI + Motor Cognitivo LangGraph
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gb-support-agent-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistência de dados: Catálogo, ChromaDB local e Checkpoints de sessão
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-pk-lf-1234567890}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-sk-lf-1234567890}
+      - LANGFUSE_HOST=http://langfuse:3000
+    depends_on:
+      - langfuse
+    networks:
+      - agentes-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # 4. Frontend: Interface de Simulação Streamlit para a Revendedora
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gb-support-agent-frontend
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - agentes-network
+
+volumes:
+  langfuse-db-data:
+    name: langfuse-db-data
+
+networks:
+  agentes-network:
+    name: agentes-network
+    driver: bridge

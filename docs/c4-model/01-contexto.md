@@ -1,3 +1,4 @@
+```mermaid
 C4Context
     title Diagrama de Contexto (Nível 1) - Plataforma Agentes GB
 
@@ -11,3 +12,4 @@ C4Context
     Rel(revendedora, motor_ia, "Faz perguntas sobre produtos, promoções ou pedidos via", "Chat (WhatsApp/App)")
     Rel(motor_ia, sis_catalogo, "Busca informações técnicas e promoções do ciclo via", "RAG")
     Rel(motor_ia, sis_pedidos, "Consulta de forma autônoma informações da conta via", "Ferramentas (Tools)")
+```

@@ -1,3 +1,4 @@
+```mermaid
 C4Container
     title Diagrama de Container (Nível 2) - Arquitetura do Motor Transacional
 
@@ -25,3 +26,4 @@ C4Container
     Rel(orquestrador, llm, "Roteia intenções e formata resposta via", "API REST")
     Rel(orquestrador, vetorial, "Recupera vizinhos mais próximos para dúvidas de catálogo via", "Semantic Search")
     Rel(orquestrador, mock_api, "Invoca funções isoladas via", "Function Calling")
+```

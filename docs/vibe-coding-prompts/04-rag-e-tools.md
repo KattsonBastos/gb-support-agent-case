@@ -1,8 +1,5 @@
-Agora vamos construir a camada de dados baseada na spec @04-rag-e-tools.md.
+Crie uma nova sub-tarefa independente baseada no arquivo [04-rag-e-tools.md](file;file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/docs/specs/04-rag-e-tools.md) 
 
-1. Crie o arquivo data/catalogo_ciclo_15.md com os dados sintéticos de Boticário e Eudora conforme solicitado.
+.Preciso que você crie o ecossistema de conectores:Gere o arquivo data/catalogo_ciclo_15.md com dados sintéticos de produtos e promoções Boticário/Eudora. Lembre-se que ele será usado em um equema de RAG
 
-2. Crie o arquivo src/tools/order_status.py implementando o mock da função buscar_status_pedido. Não esqueça da validação de autorização (comparar o CPF).
-
-3. Crie o arquivo src/rag/retriever.py configurando o ChromaDB em memória local, utilizando os embeddings locais do HuggingFace (all-MiniLM-L6-v2). Implemente a função consultar_catalogo.
-Utilize tipagem estrita (Type Hints) em todas as funções, pois elas serão usadas como Tools do LangChain/LangGraph em seguida."
+  Implemente src/tools/order_status.py com o mock da função buscar_status_pedido(cpf, id_pedido), garantindo a validação do CPF que definimos nas regras globais.   Implemente src/rag/retriever.py configurando o ChromaDB local e a função consultar_catalogo. Utilize type hints rigorosos

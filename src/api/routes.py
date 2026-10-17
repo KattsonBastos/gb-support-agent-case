@@ -18,15 +18,55 @@ router = APIRouter(prefix="/api/v1", tags=["Chat"])
 templates = Jinja2Templates(directory="templates")
 
 
+def _get_langfuse_callback(session_id: str, user_id: Optional[str] = None):
+    """Instancia dinamicamente o LangfuseCallbackHandler conforme a spec 06-observabilidade.md."""
+    import os
+    public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.getenv("LANGFUSE_SECRET_KEY")
+    host = os.getenv("LANGFUSE_HOST", "http://langfuse:3000")
+
+    if not public_key:
+        return None
+
+    try:
+        from langfuse.langchain import CallbackHandler
+        try:
+            return CallbackHandler(
+                public_key=public_key,
+                secret_key=secret_key,
+                host=host,
+                session_id=session_id,
+                user_id=user_id,
+            )
+        except TypeError:
+            return CallbackHandler(public_key=public_key)
+    except Exception as exc:
+        logger.warning(f"Não foi possível inicializar LangfuseCallbackHandler: {exc}")
+        return None
+
+
 async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]:
     """Consome o grafo LangGraph em tempo real e transmite os tokens via SSE.
 
-    Utiliza graph.astream_events(version='v2'), filtrando os nós internos de roteamento
-    e emitindo exclusivamente os tokens de texto no formato:
+    Utiliza graph.astream_events(version='v2'), filtrando os nós internos de roteamento,
+    injetando callbacks do LangFuse para observabilidade e emitindo exclusivamente os tokens
+    de texto no formato:
     data: {"chunk": "..."}\n\n
     """
     graph = get_compiled_graph()
-    config = {"configurable": {"thread_id": request.session_id}}
+
+    callbacks = []
+    langfuse_cb = _get_langfuse_callback(
+        session_id=request.session_id,
+        user_id=request.cpf,
+    )
+    if langfuse_cb:
+        callbacks.append(langfuse_cb)
+
+    config = {
+        "configurable": {"thread_id": request.session_id},
+        "callbacks": callbacks,
+    }
 
     input_state = {
         "messages": [HumanMessage(content=request.message)],
@@ -120,3 +160,12 @@ async def chat_simulator_view(request: Request):
         name="chat.html",
         context={"app_name": settings.APP_NAME},
     )
+
+
+def __getattr__(name: str):
+    """Permite inicialização direta via uvicorn src.api.routes:app conforme especificação de DevOps."""
+    if name == "app":
+        from src.main import app
+        return app
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+

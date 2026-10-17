@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routes import router as chat_router
+from src.api.routes import router as chat_router, web_router
 
 app = FastAPI(
     title="GB Revendedora Support Agent API",
@@ -22,8 +22,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registro das rotas da API
+# Registro das rotas da API e Simulador Web
 app.include_router(chat_router)
+app.include_router(web_router)
 
 
 @app.get("/health", tags=["Health"])

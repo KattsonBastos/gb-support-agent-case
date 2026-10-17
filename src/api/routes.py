@@ -1,41 +1,89 @@
-"""Rotas da API de Suporte à Revendedora GB."""
+"""Rotas da API de Suporte à Revendedora GB com Streaming Real via LangGraph SSE."""
 
-import asyncio
+import json
+import logging
 from typing import AsyncGenerator
-from fastapi import APIRouter, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Request, status
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.templating import Jinja2Templates
+from langchain_core.messages import HumanMessage
 
+from src.agent.graph import get_compiled_graph
 from src.api.schemas import ChatRequest, ChatStreamChunk
+from src.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["Chat"])
+templates = Jinja2Templates(directory="templates")
 
 
-async def mock_chat_stream_generator(request: ChatRequest) -> AsyncGenerator[str, None]:
-    """Gerador assíncrono mockado para simulação de streaming SSE.
+async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]:
+    """Consome o grafo LangGraph em tempo real e transmite os tokens via SSE.
 
-    Emite a frase 'Teste de streaming SSE' palavra por palavra com intervalo
-    de 0.5s entre cada emissão, respeitando estritamente o protocolo SSE.
+    Utiliza graph.astream_events(version='v2'), filtrando os nós internos de roteamento
+    e emitindo exclusivamente os tokens de texto no formato:
+    data: {"chunk": "..."}\n\n
     """
-    words = ["Teste", " de", " streaming", " SSE"]
+    graph = get_compiled_graph()
+    config = {"configurable": {"thread_id": request.session_id}}
 
-    for word in words:
-        chunk = ChatStreamChunk(chunk=word)
-        yield chunk.to_sse()
-        await asyncio.sleep(0.5)
+    input_state = {
+        "messages": [HumanMessage(content=request.message)],
+        "session_id": request.session_id,
+        "cpf": request.cpf,
+        "contexto_recuperado": [],
+        "tentativas_tool": 0,
+    }
+
+    try:
+        async for event in graph.astream_events(input_state, config=config, version="v2"):
+            kind = event.get("event")
+
+            # Filtra eventos internos e extrai exclusivamente os chunks de texto do modelo de chat
+            if kind == "on_chat_model_stream":
+                chunk_obj = event.get("data", {}).get("chunk")
+                if not chunk_obj:
+                    continue
+
+                content = chunk_obj.content
+
+                # Se for texto direto (string não-vazia)
+                if isinstance(content, str) and content:
+                    chunk = ChatStreamChunk(chunk=content)
+                    yield chunk.to_sse()
+
+                # Se for lista de blocos com 'text'
+                elif isinstance(content, list):
+                    for part in content:
+                        if isinstance(part, dict) and part.get("text"):
+                            chunk = ChatStreamChunk(chunk=part["text"])
+                            yield chunk.to_sse()
+                        elif isinstance(part, str) and part:
+                            chunk = ChatStreamChunk(chunk=part)
+                            yield chunk.to_sse()
+
+    except Exception as e:
+        logger.error(f"Erro durante o streaming do LangGraph: {e}", exc_info=True)
+        error_payload = json.dumps(
+            {"chunk": f"\n\n[Erro no processamento da solicitação: {str(e)}]"},
+            ensure_ascii=False,
+        )
+        yield f"data: {error_payload}\n\n"
 
 
 @router.post(
     "/chat/stream",
     response_class=StreamingResponse,
     status_code=status.HTTP_200_OK,
-    summary="Streaming de resposta do assistente (SSE)",
+    summary="Streaming de resposta do assistente via LangGraph (SSE)",
     description=(
-        "Recebe a mensagem da revendedora com isolamento por session_id e CPF opcional, "
-        "retornando os chunks de resposta via Server-Sent Events (SSE)."
+        "Recebe a mensagem da revendedora com isolamento por session_id e CPF opcional. "
+        "Executa o grafo ReAct (LangGraph) e retorna os tokens gerados em streaming SSE."
     ),
     responses={
         200: {
-            "description": "Fluxo de eventos Server-Sent Events",
+            "description": "Fluxo contínuo de Server-Sent Events (SSE)",
             "content": {"text/event-stream": {}},
         },
         422: {
@@ -44,7 +92,7 @@ async def mock_chat_stream_generator(request: ChatRequest) -> AsyncGenerator[str
     },
 )
 async def chat_stream_endpoint(request: ChatRequest) -> StreamingResponse:
-    """Endpoint principal de chat com resposta em streaming Server-Sent Events (SSE)."""
+    """Endpoint principal de chat integrado ao motor cognitivo LangGraph."""
     headers = {
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache",
@@ -53,7 +101,22 @@ async def chat_stream_endpoint(request: ChatRequest) -> StreamingResponse:
     }
 
     return StreamingResponse(
-        mock_chat_stream_generator(request),
+        chat_event_streamer(request),
         media_type="text/event-stream",
         headers=headers,
+    )
+
+
+# Rota web de demonstração/simulador
+web_router = APIRouter(tags=["Web Simulator"])
+
+
+@web_router.get("/", response_class=HTMLResponse, include_in_schema=False)
+@web_router.get("/chat", response_class=HTMLResponse, include_in_schema=False)
+async def chat_simulator_view(request: Request):
+    """Renderiza a interface visual de simulação do chat da revendedora."""
+    return templates.TemplateResponse(
+        request=request,
+        name="chat.html",
+        context={"app_name": settings.APP_NAME},
     )

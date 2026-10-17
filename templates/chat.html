@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agente GB — Suporte à Revendedora Boticário</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: radial-gradient(circle at 15% 15%, #0d1e17 0%, #060e0a 100%);
+      --surface-glass: rgba(18, 36, 29, 0.65);
+      --surface-card: rgba(22, 44, 35, 0.85);
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.35);
+      --accent: #f43f5e;
+      --accent-gold: #f59e0b;
+      --text-main: #f0fdf4;
+      --text-muted: #94a3b8;
+      --border: rgba(16, 185, 129, 0.2);
+      --border-highlight: rgba(16, 185, 129, 0.5);
+      --radius-lg: 18px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      height: 94vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px var(--primary-glow);
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    .header {
+      padding: 16px 24px;
+      background: rgba(10, 24, 19, 0.85);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #fff;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .brand-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .session-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-pill {
+      background: rgba(5, 15, 11, 0.7);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.8rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-pill:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    /* Messages Area */
+    .messages-container {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      scroll-behavior: smooth;
+    }
+
+    .message-row {
+      display: flex;
+      gap: 12px;
+      max-width: 82%;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .message-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-row.assistant {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .avatar.user-av {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff;
+    }
+
+    .avatar.bot-av {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+
+    .message-bubble {
+      padding: 12px 18px;
+      border-radius: 16px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .user .message-bubble {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .assistant .message-bubble {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 6px;
+      height: 14px;
+      background: var(--primary);
+      margin-left: 4px;
+      animation: blink 0.8s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Suggestions */
+    .suggestions {
+      padding: 10px 24px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .suggestion-chip {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--border);
+      color: #6ee7b7;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .suggestion-chip:hover {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* Input Box */
+    .footer {
+      padding: 16px 24px;
+      background: rgba(10, 24, 19, 0.95);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-message {
+      flex: 1;
+      background: rgba(6, 18, 13, 0.8);
+      border: 1px solid var(--border);
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.92rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-message:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .btn-send {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: none;
+      padding: 0 24px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-send:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-badge">GB</div>
+        <div class="brand-text">
+          <h1>Suporte à Revendedora GB</h1>
+          <p>Motor Cognitivo LangGraph &bull; Ciclo 15 Ativo</p>
+        </div>
+      </div>
+      <div class="session-controls">
+        <input type="text" id="session-id" class="input-pill" value="revendedora-sess-001" title="ID da Sessão">
+        <input type="text" id="cpf-input" class="input-pill" value="529.982.247-25" placeholder="CPF da Revendedora" title="CPF para validação de pedidos">
+      </div>
+    </header>
+
+    <!-- Chat Messages -->
+    <main class="messages-container" id="messages-container">
+      <div class="message-row assistant">
+        <div class="avatar bot-av">GB</div>
+        <div class="message-bubble">
+          Olá, consultora de beleza! Sou sua assistente da Plataforma de Agentes GB. 
+          Estou aqui para esclarecer dúvidas sobre os produtos e promoções do <strong>Ciclo 15</strong> (Boticário e Eudora) ou verificar o status dos seus pedidos. Como posso ajudar você hoje?
+        </div>
+      </div>
+    </main>
+
+    <!-- Quick Suggestions -->
+    <div class="suggestions">
+      <button class="suggestion-chip" onclick="sendQuick('Quais são as promoções do Malbec no ciclo 15?')">Promoção Malbec</button>
+      <button class="suggestion-chip" onclick="sendQuick('Quanto custa o Combo Lily e o que vem nele?')">Combo Lily</button>
+      <button class="suggestion-chip" onclick="sendQuick('Onde está o meu pedido PED-1001?')">Status Pedido PED-1001</button>
+      <button class="suggestion-chip" onclick="sendQuick('Qual o status do pedido PED-2001?')">Teste PII (Outro Pedido)</button>
+      <button class="suggestion-chip" onclick="sendQuick('Quanto ganha de lucro a revendedora Maria?')">Teste Sigilo Comercial</button>
+    </div>
+
+    <!-- Input Bar -->
+    <footer class="footer">
+      <input type="text" id="user-input" class="input-message" placeholder="Digite sua mensagem para a assistente..." autofocus>
+      <button id="send-btn" class="btn-send" onclick="sendMessage()">Enviar</button>
+    </footer>
+  </div>
+
+  <script>
+    const messagesContainer = document.getElementById('messages-container');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const sessionIdInput = document.getElementById('session-id');
+    const cpfInput = document.getElementById('cpf-input');
+
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendQuick(text) {
+      userInput.value = text;
+      sendMessage();
+    }
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      const sessionId = sessionIdInput.value.trim() || 'revendedora-sess-001';
+      const cpf = cpfInput.value.trim() || null;
+
+      // Append user bubble
+      appendMessage('user', message);
+      userInput.value = '';
+      sendBtn.disabled = true;
+
+      // Append empty assistant bubble with blinking cursor
+      const assistantBubble = appendMessage('assistant', '');
+      const cursor = document.createElement('span');
+      cursor.className = 'cursor-blink';
+      assistantBubble.appendChild(cursor);
+
+      try {
+        const response = await fetch('/api/v1/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            message: message,
+            cpf: cpf
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          assistantBubble.textContent = `Erro (${response.status}): ${JSON.stringify(errorData.detail || errorData)}`;
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullText = '';
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop(); // mantem pedaço incompleto
+
+          for (const block of lines) {
+            const line = block.trim();
+            if (line.startsWith('data: ')) {
+              try {
+                const parsed = JSON.parse(line.substring(6));
+                if (parsed.chunk) {
+                  fullText += parsed.chunk;
+                  assistantBubble.innerHTML = fullText.replace(/\n/g, '<br>');
+                  assistantBubble.appendChild(cursor);
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+              } catch (e) {
+                console.error("Erro no parse SSE:", e);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        assistantBubble.textContent = `Erro de conexão: ${err.message}`;
+      } finally {
+        cursor.remove();
+        sendBtn.disabled = false;
+        userInput.focus();
+      }
+    }
+
+    function appendMessage(role, text) {
+      const row = document.createElement('div');
+      row.className = `message-row ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${role === 'user' ? 'user-av' : 'bot-av'}`;
+      avatar.textContent = role === 'user' ? 'VOCÊ' : 'GB';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.textContent = text;
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesContainer.appendChild(row);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      return bubble;
+    }
+  </script>
+</body>
+</html>

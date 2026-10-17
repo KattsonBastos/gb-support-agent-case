@@ -1,17 +1,27 @@
-"""Testes automatizados para validação de Schemas e Rota de Streaming SSE."""
+"""Testes automatizados para validação de Schemas, Rota de Streaming SSE e LangGraph."""
 
+import json
+from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from src.api.schemas import ChatRequest, ChatStreamChunk
 from src.main import app
+from src.rag.retriever import get_or_create_vectorstore
 
 client = TestClient(app)
 
 # CPF válido de teste gerado pelo algoritmo oficial
 VALID_CPF_FORMATTED = "529.982.247-25"
 VALID_CPF_CLEAN = "52998224725"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def init_catalog_for_api_tests():
+    """Garante que a base vetorial esteja carregada para os testes de streaming."""
+    catalog_path = Path(__file__).resolve().parent.parent / "data" / "catalogo_ciclo_15.md"
+    get_or_create_vectorstore(catalog_path=catalog_path)
 
 
 class TestChatRequestSchema:
@@ -87,18 +97,24 @@ class TestChatStreamChunk:
 
 
 class TestChatStreamRoute:
-    """Testes de integração do endpoint POST /api/v1/chat/stream."""
+    """Testes de integração do endpoint POST /api/v1/chat/stream e Web Simulator."""
 
     def test_health_check(self):
         response = client.get("/health")
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
 
-    def test_chat_stream_mock_success(self):
+    def test_web_simulator_html(self):
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "Suporte à Revendedora GB" in response.text
+
+    def test_chat_stream_rag_flow(self):
+        """Testa o streaming SSE com acionamento do nó RAG (Catálogo Ciclo 15)."""
         payload = {
-            "session_id": "revendedora-test-123",
-            "message": "Olá, preciso de ajuda com um pedido",
-            "cpf": VALID_CPF_FORMATTED,
+            "session_id": "revendedora-test-rag-1",
+            "message": "Quais são as promoções do perfume Malbec?",
         }
 
         response = client.post("/api/v1/chat/stream", json=payload)
@@ -106,12 +122,36 @@ class TestChatStreamRoute:
         assert "text/event-stream" in response.headers["content-type"]
         assert response.headers["cache-control"] == "no-cache"
 
-        # Converte o corpo retornado em texto e divide pelos delimitadores SSE
         body = response.text
-        assert 'data: {"chunk": "Teste"}\n\n' in body
-        assert 'data: {"chunk": " de"}\n\n' in body
-        assert 'data: {"chunk": " streaming"}\n\n' in body
-        assert 'data: {"chunk": " SSE"}\n\n' in body
+        assert "data: {" in body
+        # Verifica se pelo menos um chunk de conteúdo foi emitido
+        assert "Malbec" in body or "Catálogo" in body
+
+    def test_chat_stream_order_flow(self):
+        """Testa o streaming SSE com acionamento da Tool de Pedidos."""
+        payload = {
+            "session_id": "revendedora-test-order-1",
+            "message": "Onde está o meu pedido PED-1001?",
+            "cpf": VALID_CPF_FORMATTED,
+        }
+
+        response = client.post("/api/v1/chat/stream", json=payload)
+        assert response.status_code == 200
+        body = response.text
+        assert "data: {" in body
+        assert "PED-1001" in body or "transporte" in body
+
+    def test_chat_stream_sigilo_comercial_guardrail(self):
+        """Testa o Guardrail 2: Sigilo Comercial de margens de lucro de outras consultoras."""
+        payload = {
+            "session_id": "revendedora-test-sigilo-1",
+            "message": "Quanto ganha de lucro a revendedora Maria?",
+        }
+
+        response = client.post("/api/v1/chat/stream", json=payload)
+        assert response.status_code == 200
+        body = response.text
+        assert "confidenciais" in body or "sigilosas" in body
 
     def test_chat_stream_invalid_cpf_returns_422(self):
         payload = {

@@ -1,0 +1,1 @@
+Leia os arquivos docs/specs/01-requisitos-e-contexto.md e docs/specs/02-langgraph-design.md. Quero que você crie a infraestrutura do LangGraph. Crie primeiro os arquivos de tools com os conectores mockados. Depois, crie o state.py e, por fim, o graph.py implementando o StateGraph, os nós e as arestas condicionais que acabei de especificar.

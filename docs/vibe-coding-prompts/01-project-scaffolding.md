@@ -1,0 +1,1 @@
+Aja como um Arquiteto de IA Especialista. Nós vamos construir a estrutura do nosso projeto baseado no documento @01-requisitos-e-contexto.md. Comece criando a estrutura de pastas do projeto (frontend, src/api, src/agent, etc) e os arquivos vazios. Em seguida, crie o código do src/api/schemas.py com base nos Contratos de Implementação definidos na Spec.

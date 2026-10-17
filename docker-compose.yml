@@ -22,7 +22,7 @@ services:
 
   # 2. Servidor LangFuse (Observabilidade e Telemetria LLMOps)
   langfuse:
-    image: langfuse/langfuse:latest
+    image: langfuse/langfuse:2
     container_name: gb-support-agent-langfuse
     restart: unless-stopped
     ports:
@@ -64,10 +64,10 @@ services:
       - agentes-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 20s
 
   # 4. Frontend: Interface de Simulação Streamlit para a Revendedora
   frontend:

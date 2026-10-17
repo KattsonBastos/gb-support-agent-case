@@ -17,6 +17,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["Chat"])
 templates = Jinja2Templates(directory="templates")
 
+def _setup_langchain_compat():
+    """Garante compatibilidade do CallbackHandler do Langfuse 2.x com Langchain 0.2+/1.x."""
+    import sys
+    import types
+    if "langchain.callbacks.base" not in sys.modules:
+        import langchain_core.callbacks.base
+        mod = types.ModuleType("langchain.callbacks")
+        mod_base = types.ModuleType("langchain.callbacks.base")
+        mod_base.BaseCallbackHandler = langchain_core.callbacks.base.BaseCallbackHandler
+        sys.modules["langchain.callbacks"] = mod
+        sys.modules["langchain.callbacks.base"] = mod_base
+
+    if "langchain.schema.agent" not in sys.modules:
+        mod_schema = types.ModuleType("langchain.schema")
+        mod_agent = types.ModuleType("langchain.schema.agent")
+        mod_doc = types.ModuleType("langchain.schema.document")
+        from langchain_core.documents import Document
+        from langchain_core.agents import AgentAction, AgentFinish
+        mod_agent.AgentAction = AgentAction
+        mod_agent.AgentFinish = AgentFinish
+        mod_doc.Document = Document
+        sys.modules["langchain.schema"] = mod_schema
+        sys.modules["langchain.schema.agent"] = mod_agent
+        sys.modules["langchain.schema.document"] = mod_doc
+
 
 def _get_langfuse_callback(session_id: str, user_id: Optional[str] = None):
     """Instancia dinamicamente o LangfuseCallbackHandler conforme a spec 06-observabilidade.md."""
@@ -25,30 +50,34 @@ def _get_langfuse_callback(session_id: str, user_id: Optional[str] = None):
     secret_key = os.getenv("LANGFUSE_SECRET_KEY")
     host = os.getenv("LANGFUSE_HOST", "http://langfuse:3000")
 
-    if not public_key:
+    if not public_key or not secret_key:
         return None
 
     try:
-        from langfuse.langchain import CallbackHandler
-        try:
-            return CallbackHandler(
-                public_key=public_key,
-                secret_key=secret_key,
-                host=host,
-                session_id=session_id,
-                user_id=user_id,
-            )
-        except TypeError:
-            return CallbackHandler(public_key=public_key)
+        _setup_langchain_compat()
+        from langfuse.callback import CallbackHandler
+        return CallbackHandler(
+            public_key=public_key,
+            secret_key=secret_key,
+            host=host,
+            session_id=session_id,
+            user_id=user_id,
+        )
     except Exception as exc:
         logger.warning(f"Não foi possível inicializar LangfuseCallbackHandler: {exc}")
         return None
 
+
 def _flush_langfuse(handler=None):
     """Garante envio imediato dos traces do Langfuse ao final do streaming."""
     try:
-        if handler and hasattr(handler, "_langfuse_client") and hasattr(handler._langfuse_client, "flush"):
-            handler._langfuse_client.flush()
+        if handler:
+            if hasattr(handler, "flush"):
+                handler.flush()
+            elif hasattr(handler, "_langfuse_client") and hasattr(handler._langfuse_client, "flush"):
+                handler._langfuse_client.flush()
+            elif hasattr(handler, "langfuse") and hasattr(handler.langfuse, "flush"):
+                handler.langfuse.flush()
     except Exception:
         pass
 

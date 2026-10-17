@@ -44,6 +44,14 @@ def _get_langfuse_callback(session_id: str, user_id: Optional[str] = None):
         logger.warning(f"Não foi possível inicializar LangfuseCallbackHandler: {exc}")
         return None
 
+def _flush_langfuse(handler=None):
+    """Garante envio imediato dos traces do Langfuse ao final do streaming."""
+    try:
+        if handler and hasattr(handler, "_langfuse_client") and hasattr(handler._langfuse_client, "flush"):
+            handler._langfuse_client.flush()
+    except Exception:
+        pass
+
 
 async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]:
     """Consome o grafo LangGraph em tempo real e transmite os tokens via SSE.
@@ -66,6 +74,11 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
     config = {
         "configurable": {"thread_id": request.session_id},
         "callbacks": callbacks,
+        "metadata": {
+            "langfuse_session_id": request.session_id,
+            "langfuse_user_id": request.cpf,
+            "langfuse_trace_name": "gb-support-agent-chat",
+        },
     }
 
     input_state = {
@@ -110,6 +123,9 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
             ensure_ascii=False,
         )
         yield f"data: {error_payload}\n\n"
+    finally:
+        if langfuse_cb:
+            _flush_langfuse(langfuse_cb)
 
 
 @router.post(

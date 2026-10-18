@@ -2,10 +2,22 @@
 
 import json
 import os
+import re
 import uuid
 from typing import Generator, Optional
 import requests
 import streamlit as st
+
+
+def escape_markdown_dollars(text: str) -> str:
+    """Escapa cifrões ($) para evitar que o parser KaTeX/LaTeX do Streamlit
+
+    interprete valores monetários (ex: R$ 219,90 ... R$ 179,90) como
+    fórmulas matemáticas, o que faz os símbolos de moeda desaparecerem.
+    """
+    if not text:
+        return ""
+    return re.sub(r"(?<!\\)\$", r"\\$", text)
 
 # Configuração inicial da página com identidade visual do Grupo Boticário
 st.set_page_config(
@@ -113,10 +125,10 @@ def stream_chat_response(
                         parsed = json.loads(raw_data)
                         chunk = parsed.get("chunk", "")
                         if chunk:
-                            yield chunk
+                            yield escape_markdown_dollars(chunk)
                     except json.JSONDecodeError:
                         if raw_data:
-                            yield raw_data
+                            yield escape_markdown_dollars(raw_data)
 
     except requests.exceptions.ConnectionError:
         yield (
@@ -194,14 +206,14 @@ with col_title:
 # Renderiza histórico de mensagens armazenadas em st.session_state
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+        st.markdown(escape_markdown_dollars(msg["content"]))
 
 # Componente nativo de input de chat do Streamlit
 if prompt := st.chat_input("Digite sua mensagem para a assistente da revendedora..."):
     # 1. Registra e renderiza mensagem da revendedora
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(escape_markdown_dollars(prompt))
 
     # 2. Renderiza resposta da assistente com efeito de digitação em streaming
     with st.chat_message("assistant"):

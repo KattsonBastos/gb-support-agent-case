@@ -82,6 +82,14 @@ def _flush_langfuse(handler=None):
         pass
 
 
+def _sanitize_markdown_chunk(text: str) -> str:
+    """Escapa cifrões ($) para evitar que renderizadores Markdown/KaTeX quebrem a exibição de moedas."""
+    if not text:
+        return ""
+    import re
+    return re.sub(r"(?<!\\)\$", r"\\$", text)
+
+
 async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]:
     """Consome o grafo LangGraph em tempo real e transmite os tokens via SSE.
 
@@ -132,17 +140,17 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
 
                 # Se for texto direto (string não-vazia)
                 if isinstance(content, str) and content:
-                    chunk = ChatStreamChunk(chunk=content)
+                    chunk = ChatStreamChunk(chunk=_sanitize_markdown_chunk(content))
                     yield chunk.to_sse()
 
                 # Se for lista de blocos com 'text'
                 elif isinstance(content, list):
                     for part in content:
                         if isinstance(part, dict) and part.get("text"):
-                            chunk = ChatStreamChunk(chunk=part["text"])
+                            chunk = ChatStreamChunk(chunk=_sanitize_markdown_chunk(part["text"]))
                             yield chunk.to_sse()
                         elif isinstance(part, str) and part:
-                            chunk = ChatStreamChunk(chunk=part)
+                            chunk = ChatStreamChunk(chunk=_sanitize_markdown_chunk(part))
                             yield chunk.to_sse()
 
     except Exception as e:

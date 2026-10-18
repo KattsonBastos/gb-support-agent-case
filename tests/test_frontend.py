@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 import requests
-from frontend.app import stream_chat_response
+from frontend.app import escape_markdown_dollars, stream_chat_response
 
 
 class TestStreamChatResponse:
@@ -82,3 +82,46 @@ class TestStreamChatResponse:
         result_text = "".join(chunks)
         assert "Erro de validação (422)" in result_text
         assert "CPF inválido" in result_text
+
+    @patch("requests.post")
+    def test_stream_chat_response_escapes_dollar_signs_in_chunks(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.iter_lines.return_value = [
+            'data: {"chunk": "De R$ 219,90 "}',
+            "",
+            'data: {"chunk": "por **R$ 179,90**"}',
+        ]
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+        mock_post.return_value = mock_response
+
+        chunks = list(
+            stream_chat_response(
+                api_url="http://localhost:8000/api/v1/chat/stream",
+                session_id="test-session",
+                message="Qual o preco?",
+                cpf="529.982.247-25",
+            )
+        )
+
+        full_text = "".join(chunks)
+        # Verifica que os $ foram devidamente escapados para não quebrar o KaTeX do Streamlit
+        assert r"\$" in full_text
+        assert full_text == r"De R\$ 219,90 por **R\$ 179,90**"
+
+
+class TestMarkdownSanitization:
+    """Testes unitários específicos para sanitização de Markdown/KaTeX."""
+
+    def test_escape_markdown_dollars_reais_pricing(self):
+        text = "De R$ 219,90 por **R$ 179,90**"
+        assert escape_markdown_dollars(text) == r"De R\$ 219,90 por **R\$ 179,90**"
+
+    def test_escape_markdown_dollars_already_escaped_idempotent(self):
+        text = r"Preço fixo de R\$ 159,92"
+        assert escape_markdown_dollars(text) == r"Preço fixo de R\$ 159,92"
+
+    def test_escape_markdown_dollars_empty_or_none(self):
+        assert escape_markdown_dollars("") == ""
+        assert escape_markdown_dollars(None) == ""

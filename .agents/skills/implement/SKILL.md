@@ -17,7 +17,7 @@ Autonomously and incrementally implement tasks defined in `tasks.md` while adher
 3. **Execute Task:**
    - Implement only the code and tests required for that specific task.
    - Strictly follow the patterns in `.specs/constitution.md`.
-   - Run tests and linters to verify the change passes.
+   - Run `pytest` (the suite must pass without network or API keys) to verify the change.
 4. **Mark Completion:**
    - Update `tasks.md` to mark the task completed: `- [x] Task X.Y: ...`.
    - Summarize what was accomplished.

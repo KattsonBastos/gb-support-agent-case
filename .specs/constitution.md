@@ -23,7 +23,8 @@ Espelham `.agents/rules/guardrails.md` e se aplicam a todo código gerado:
 2. **Sigilo Comercial:** o agente não pode calcular, estimar ou fornecer margens de lucro, ganhos ou faturamento de outras revendedoras. A proibição deve constar no System Prompt e ser coberta por teste.
 3. **SSE Nativo:** toda rota de chat responde com `StreamingResponse` (`text/event-stream`), chunks no formato `data: {"chunk": "..."}\n\n` e headers `Cache-Control: no-cache` e `X-Accel-Buffering: no`.
 - **Isolamento de sessão:** memória do grafo sempre indexada por `configurable.thread_id = session_id`.
-- **Logs:** nunca registrar CPF, conteúdo de pedidos ou chaves de API em logs abertos.
+- **Logs:** nunca registrar CPF, conteúdo de pedidos ou chaves de API em logs abertos. Em exceções cujo texto possa conter argumentos de Tools, logar apenas o tipo do erro e o `session_id`; traceback completo somente com `DEBUG=true`.
+- **Telemetria:** o CPF enviado a sistemas de observabilidade (ex.: `user_id` do LangFuse) deve ser pseudonimizado via `src.core.security.pseudonimizar_cpf` (HMAC-SHA256 com `PII_HASH_SALT`).
 - **Segredos:** apenas via variáveis de ambiente / `.env` (nunca versionado); manter `.env.example` atualizado.
 
 ## 3. Regras Arquiteturais
@@ -43,7 +44,7 @@ Espelham `.agents/rules/guardrails.md` e se aplicam a todo código gerado:
 
 ## 4. Tratamento de Erros
 - **Entrada:** validações no schema Pydantic → FastAPI retorna `422` automaticamente. `ChatRequest` usa `extra="forbid"`.
-- **Durante o streaming:** após o envio dos headers não é possível alterar o status HTTP; erros devem ser logados (`logger.error(..., exc_info=True)`) e emitidos como chunk SSE padronizado antes de encerrar o stream.
+- **Durante o streaming:** após o envio dos headers não é possível alterar o status HTTP; erros devem ser logados (respeitando a regra de logs da Seção 2) e emitidos como chunk SSE genérico com `code` (ex.: `STREAM_ERROR`) antes de encerrar o stream. O texto da exceção nunca é repassado ao cliente.
 - **Tools:** erros de negócio (CPF inválido, pedido inexistente, acesso negado) retornam JSON estruturado com `status` e `codigo` (ex.: `ACESSO_NEGADO`, `CPF_INVALIDO`, `nao_encontrado`) para que o LLM explique a recusa sem quebrar o grafo.
 - **Nunca** silenciar exceções com `except: pass`, exceto em rotinas de best-effort explicitamente documentadas (ex.: flush de telemetria).
 - Mensagens de erro voltadas ao usuário em português, sem stack traces nem dados sensíveis.
@@ -56,8 +57,8 @@ Espelham `.agents/rules/guardrails.md` e se aplicam a todo código gerado:
   - Cada Tool (sucesso e todos os códigos de erro).
   - Roteamento do grafo e Circuit Breaker.
   - **Cada guardrail da Seção 2** com pelo menos um teste ponta a ponta (acesso cruzado de CPF, pergunta de margem de lucro, formato SSE).
-- Organização: um arquivo por domínio em `tests/` (`test_api.py`, `test_agent.py`, `test_tools_and_rag.py`, `test_frontend.py`); classes `Test<Assunto>` agrupando casos relacionados.
-- Usar `@pytest.mark.parametrize` para múltiplas entradas/saídas do mesmo comportamento.
+- Organização: um arquivo por domínio em `tests/` (`test_api.py`, `test_agent.py`, `test_tools_and_rag.py`, `test_frontend.py`, `test_security.py`); classes `Test<Assunto>` agrupando casos relacionados.
+- Novos testes devem preferir `@pytest.mark.parametrize` para múltiplas entradas/saídas do mesmo comportamento. Testes legados podem ser migrados de forma oportunista, quando o arquivo for alterado.
 - Dados de teste usam os CPFs válidos do mock (`52998224725` Juliana, `14183884784` Camila).
 - Toda tarefa só é marcada `[x]` em `tasks.md` com `pytest` verde.
 

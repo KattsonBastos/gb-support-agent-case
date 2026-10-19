@@ -11,7 +11,7 @@ Guide the user through clarifying requirements, edge cases, and constraints to g
 ## Instructions
 1. **Load Context:**
    - Read `.specs/constitution.md` to understand tech stack, architecture, and coding rules.
-   - Identify the active feature directory (from `.mysdd.yaml` or `.cursor/rules/sdd.mdc` / `.antigravity/sdd.md`).
+   - Identify the active feature directory (from `.ksdd.yaml` or `.antigravity/sdd.md`). Feature directories follow `.specs/RFC-XXX-<feature-name>/`.
    - If no active spec exists, ask the user to run `ksdd new <feature-name> --id <id>` or specify one.
 2. **Clarify Requirements:**
    - Ask 2–4 targeted clarifying questions regarding:

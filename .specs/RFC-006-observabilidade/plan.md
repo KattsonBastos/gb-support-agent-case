@@ -82,17 +82,19 @@ flowchart LR
 - Em `chat_event_streamer`:
   - `config["callbacks"] = [handler]` quando disponível.
   - `config["metadata"]` com `langfuse_session_id`, `langfuse_user_id` e `langfuse_trace_name="gb-support-agent-chat"`.
-  - `user_id` = CPF **já normalizado e validado** pelo `ChatRequest`, permitindo auditoria de acessos e rastreio de disparos de guardrails por revendedora.
+  - `user_id` = CPF normalizado pelo `ChatRequest` e **pseudonimizado** por `src.core.security.pseudonimizar_cpf` (HMAC-SHA256 com `PII_HASH_SALT`, formato `rev-<16 hex>`). O identificador é estável por revendedora, preservando a auditoria de acessos e o rastreio de disparos de guardrails, sem CPF em claro no LangFuse.
+- No bloco de erro do streaming, o log registra apenas `session_id` e o tipo da exceção (traceback só com `DEBUG`), e o cliente recebe um chunk genérico com `code: STREAM_ERROR`.
 
 ### 3.3. Variáveis de Ambiente
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST="http://langfuse:3000"`.
+- `PII_HASH_SALT`: segredo da pseudonimização do CPF (valor padrão apenas para desenvolvimento local).
 - Demais variáveis da aplicação (`GOOGLE_API_KEY`/`GEMINI_API_KEY`, `GEMINI_MODEL`, `CIRCUIT_BREAKER_LIMIT`) lidas de `.env`, documentadas em `.env.example`.
 
 ---
 
 ## 4. Estratégia de Validação
 
-- **Automatizada:** suíte existente (`pytest`) deve continuar verde sem chaves LangFuse (handler `None`), comprovando a degradação graciosa.
+- **Automatizada:** suíte existente (`pytest`) deve continuar verde sem chaves LangFuse (handler `None`), comprovando a degradação graciosa. `tests/test_security.py` cobre a pseudonimização do CPF e a ausência de vazamento em erros de streaming.
 - **Manual (smoke test):**
   1. `./run.sh` e aguardar os 4 serviços `healthy`.
   2. Criar projeto e chaves na UI `http://localhost:3000` e atualizar o `.env`.
@@ -108,10 +110,10 @@ flowchart LR
 2. **Fase 2:** reescrever o `docker-compose.yml` com `db-langfuse` e `langfuse`; adicionar `langfuse` ao `requirements.txt`.
 3. **Fase 3:** instrumentar `routes.py` (handler, metadata, flush).
 4. **Fase 4 (estabilização):** fixar versão do SDK/imagem, ajustar healthchecks, ler credenciais de variáveis de ambiente e adicionar shims de compatibilidade com o LangChain.
+5. **Fase 5 (minimização de PII):** pseudonimizar o `user_id` enviado ao LangFuse e remover o texto de exceções dos logs e do chunk de erro.
 
 ---
 
 ## 6. Fora de Escopo / Evoluções Futuras
-- Segredos reais (`NEXTAUTH_SECRET`, `SALT`, senhas do Postgres) via secret manager — os valores atuais são apenas para ambiente local.
-- Mascaramento/pseudonimização do CPF no `user_id` antes do envio ao LangFuse (ex.: hash com salt) para reforçar a minimização de PII.
+- Segredos reais (`NEXTAUTH_SECRET`, `SALT`, senhas do Postgres, `PII_HASH_SALT`) via secret manager — os valores atuais são apenas para ambiente local.
 - Migração para LangFuse 3.x / OpenTelemetry e integração com DataDog APM (TO-BE do RFC-001).

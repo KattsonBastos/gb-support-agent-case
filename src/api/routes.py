@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage
 from src.agent.graph import get_compiled_graph
 from src.api.schemas import ChatRequest, ChatStreamChunk
 from src.core.config import settings
+from src.core.security import pseudonimizar_cpf
 
 logger = logging.getLogger(__name__)
 
@@ -100,10 +101,13 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
     """
     graph = get_compiled_graph()
 
+    # Minimização de PII: o LangFuse recebe apenas o identificador pseudonimizado do CPF
+    user_id_telemetria = pseudonimizar_cpf(request.cpf)
+
     callbacks = []
     langfuse_cb = _get_langfuse_callback(
         session_id=request.session_id,
-        user_id=request.cpf,
+        user_id=user_id_telemetria,
     )
     if langfuse_cb:
         callbacks.append(langfuse_cb)
@@ -113,7 +117,7 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
         "callbacks": callbacks,
         "metadata": {
             "langfuse_session_id": request.session_id,
-            "langfuse_user_id": request.cpf,
+            "langfuse_user_id": user_id_telemetria,
             "langfuse_trace_name": "gb-support-agent-chat",
         },
     }
@@ -154,9 +158,22 @@ async def chat_event_streamer(request: ChatRequest) -> AsyncGenerator[str, None]
                             yield chunk.to_sse()
 
     except Exception as e:
-        logger.error(f"Erro durante o streaming do LangGraph: {e}", exc_info=True)
+        # A mensagem da exceção pode conter argumentos de Tools (ex.: CPF); por isso
+        # o log registra apenas o tipo do erro e o traceback completo só em modo DEBUG.
+        logger.error(
+            "Erro durante o streaming do LangGraph (session_id=%s, tipo=%s)",
+            request.session_id,
+            type(e).__name__,
+            exc_info=settings.DEBUG,
+        )
         error_payload = json.dumps(
-            {"chunk": f"\n\n[Erro no processamento da solicitação: {str(e)}]"},
+            {
+                "chunk": (
+                    "\n\n[Não foi possível processar sua solicitação no momento. "
+                    "Tente novamente em instantes.]"
+                ),
+                "code": "STREAM_ERROR",
+            },
             ensure_ascii=False,
         )
         yield f"data: {error_payload}\n\n"

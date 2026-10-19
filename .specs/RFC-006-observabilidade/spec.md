@@ -11,7 +11,7 @@
 ## 2. Padrões de Implementação no FastAPI
 A observabilidade não deve estar acoplada dentro dos nós do LangGraph, mas sim injetada no momento da execução.
 *   **Handler Dinâmico:** Para cada requisição no endpoint `POST /api/v1/chat/stream`, instanciar o `LangfuseCallbackHandler`.
-*   **Isolamento de Contexto:** É obrigatório passar o `session_id` e o `user_id` (utilizando o CPF da revendedora) para o construtor do callback[cite: 1]. Isto garante a auditoria de acessos e facilita a depuração caso ocorra disparo das travas de segurança (Guardrails)[cite: 1, 2].
+*   **Isolamento de Contexto:** É obrigatório passar o `session_id` e o `user_id` (utilizando o CPF da revendedora **pseudonimizado** via HMAC-SHA256, nunca em texto claro) para o construtor do callback[cite: 1]. Isto garante a auditoria de acessos e facilita a depuração caso ocorra disparo das travas de segurança (Guardrails)[cite: 1, 2], sem expor PII na plataforma de telemetria.
 *   **Injeção no Grafo:** O handler deve ser passado no argumento `callbacks` da configuração de execução (`config`) durante a invocação do `astream_events`[cite: 1].
 
 ## 3. Variáveis de Ambiente Necessárias

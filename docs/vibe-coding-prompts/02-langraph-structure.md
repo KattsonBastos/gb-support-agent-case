@@ -1,4 +1,0 @@
-Integre o sistema baseando-se na especificação
-[02-langgraph-design.md](file;file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/docs/specs/02-langgraph-design.md) 
-e nos conectores recém-criados.Implemente src/agent/state.py definindo o AgentState com o histórico de mensagens.Crie src/agent/graph.py estruturando o padrão ReAct. Defina os nós (Router, RAG, Tools) e as arestas condicionais de roteamento.Adicione as instruções de Guardrails de PII e Margem de Lucro no System Prompt do nó Orquestrador.   Refatore a rota no src/api/routes.py para substituir o mock pelo streaming real utilizando graph.astream_events(), repassando os chunks gerados em formato SSE.
-Usaremos modelos google gemini based. Coloque na pasta templates/ a estrutura do template de chat.

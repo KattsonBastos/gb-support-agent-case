@@ -17,12 +17,12 @@ A solução foi arquitetada utilizando o padrão <strong>ReAct (Reasoning and Ac
 Para garantir a escalabilidade técnica e a segurança operacional exigidas pelo negócio, a arquitetura foi mapeada e documentada seguindo padrões da indústria.
 </p>
 
-*   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em `docs/c4-model/`.
-*   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado no repositório.
-*   **ADRs (Architecture Decision Records):** As decisões críticas que moldaram este MVP estão detalhadas em `docs/adrs/`. Destacam-se:
-    *   `ADR-001`: Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
-    *   `ADR-002`: Comunicação Assíncrona via Streaming SSE.
-    *   `ADR-003`: Defesa em Profundidade (Guardrails) para Proteção de PII e Margens de Lucro.
+*   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/c4-model/](docs/c4-model/).
+*   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/c4-model/03-sequencia-casos-uso.md](docs/c4-model/03-sequencia-casos-uso.md).
+*   **ADRs (Architecture Decision Records):** As decisões críticas que moldaram este MVP estão detalhadas em [docs/adrs/](docs/adrs/). Destacam-se:
+    *   [`ADR-001`](docs/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
+    *   [`ADR-002`](docs/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
+    *   [`ADR-003`](docs/adrs/003-guardrails-pii.md): Defesa em Profundidade (Guardrails) para Proteção de PII e Margens de Lucro.
 
 ## 3. Instruções para Rodar Localmente
 <p align="justify">
@@ -38,7 +38,7 @@ O projeto foi integralmente dockerizado para emular um ambiente de microsserviç
     cd git@github.com:KattsonBastos/gb-support-agent-case.git
     ```
 2.  Configure as variáveis de ambiente:
-    *   Duplique o arquivo `.env.example` e renomeie para `.env`.
+    *   Duplique o arquivo [`.env.example`](.env.example) e renomeie para `.env`.
     *   Insira as suas chaves de API (`OPENAI_API_KEY` ou `GOOGLE_API_KEY`, e credenciais do `LANGFUSE` para observabilidade).
 3.  Inicie a infraestrutura:
     ```bash
@@ -62,7 +62,7 @@ Conforme exigido pelo escopo do desafio, a esteira de desenvolvimento foi fortem
     *   **Framework customizado de Spec-Driven Development (SDD):** Criado por mim mesmo para a parte da implementação. Aqui estão as especificações em [.specs](.specs) e as [skills de SDD](.agents/skills) foram versionadas apenas para fins de explicação.
     *   **Prompts Vibe Coding:** Registro em [docs/vibe-coding-prompts](docs/vibe-coding-prompts) dos prompts usados no vibe coding via chat para atividades gerais.
 *   **O Maior Obstáculo da IA:** Durante a implementação do LangGraph, a IA teve grande dificuldade em correlacionar o gerador assíncrono do grafo (`.astream_events()`) com o formato exigido pelo `StreamingResponse` do FastAPI. O modelo insistia em devolver objetos internos de roteamento do LangChain no meio do stream SSE, quebrando a interface do usuário.
-*   **A Correção (Human-in-the-Loop):** Intervi criando um filtro heurístico na função geradora do FastAPI (`routes.py`). Ajustei o loop assíncrono para inspecionar os dicionários gerados pelo evento, garantindo que o `yield` ocorresse estritamente quando a chave `"event"` fosse `on_chat_model_stream`, formatando manualmente o chunk no padrão nativo de Server-Sent Events (`data: {chunk}\n\n`).
+*   **A Correção (Human-in-the-Loop):** Intervi criando um filtro heurístico na função geradora do FastAPI ([`src/api/routes.py`](src/api/routes.py)). Ajustei o loop assíncrono para inspecionar os dicionários gerados pelo evento, garantindo que o `yield` ocorresse estritamente quando a chave `"event"` fosse `on_chat_model_stream`, formatando manualmente o chunk no padrão nativo de Server-Sent Events (`data: {chunk}\n\n`).
 
 ## 5. Visão de Evolução (System Design para 500 mil revendedoras)
 

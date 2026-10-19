@@ -1,6 +1,6 @@
 # Interface de Simulação (UX)
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
-**Arquivo:** `docs/specs/05-frontend.md`
+**Arquivo:** `.specs/RFC-005-frontend/spec.md`
 **Propósito:** Definir os requisitos para o frontend em Streamlit que simulará o canal de atendimento da Revendedora.
 
 ## 1. Stack Tecnológica

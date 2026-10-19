@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # Circuit Breaker e Limites do Grafo
     CIRCUIT_BREAKER_LIMIT: int = 5
 
+    # Minimização de PII (pseudonimização do CPF em telemetria)
+    PII_HASH_SALT: str = "gb-local-dev-salt"
+
     # Caminhos de Dados e RAG
     DATA_DIR: Path = BASE_DIR / "data"
     CATALOG_PATH: Path = BASE_DIR / "data" / "catalogo_ciclo_15.md"

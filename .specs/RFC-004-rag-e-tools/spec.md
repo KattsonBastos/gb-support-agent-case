@@ -1,6 +1,6 @@
 # Domínio de Conhecimento (RAG) e Ferramentas (Tools)
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
-**Arquivo:** `docs/specs/04-rag-e-tools.md`
+**Arquivo:** `.specs/RFC-004-rag-e-tools/spec.md`
 **Propósito:** Isolar a lógica de ingestão do catálogo, busca vetorial e a simulação (Mock) dos conectores transacionais.
 
 ## 1. Geração da Base Sintética (Catálogo)

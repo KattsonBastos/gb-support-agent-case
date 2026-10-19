@@ -3,7 +3,7 @@
 **Status:** Aceito
 
 ## Contexto
-O assistente precisa responder a dúvidas sobre os produtos em promoção no ciclo atual, consumindo uma base sintética que simula um catálogo em PDF[cite: 1]. A estratégia de divisão desse texto (chunking) impacta diretamente a precisão da resposta vetorial.
+O assistente precisa responder a dúvidas sobre os produtos em promoção no ciclo atual, consumindo uma base sintética que simula um catálogo em PDF. A estratégia de divisão desse texto (chunking) impacta diretamente a precisão da resposta vetorial.
 
 ## Decisão
 Para a base do catálogo, optamos por **Chunking Semântico / Estrutural** (baseado em seções e produtos do Markdown) em vez de Chunking de Tamanho Fixo (ex: 500 caracteres rígidos). Utilizaremos um VectorDB em memória (como ChromaDB ou FAISS) com embeddings locais rápidos e gratuitos (ex: `all-MiniLM-L6-v2` da HuggingFace).

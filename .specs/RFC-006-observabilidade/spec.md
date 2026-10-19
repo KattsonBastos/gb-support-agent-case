@@ -1,6 +1,6 @@
 # Observabilidade e LLMOps
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
-**Ficheiro:** `docs/specs/06-observabilidade.md`
+**Ficheiro:** `.specs/RFC-006-observabilidade/spec.md`
 **Propósito:** Definir os padrões de telemetria e rastreamento das etapas do LangGraph, consumo de tokens e latência, utilizando uma instância local do LangFuse.
 
 ## 1. Stack e Infraestrutura

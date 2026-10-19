@@ -3,8 +3,8 @@
 **Projeto:** Plataforma Agentes GB — Agente de Suporte à Revendedora  
 **Papel:** Arquiteto de Software  
 **Documentos de Referência:** 
-- [01-requisitos-e-contexto.md](file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/docs/specs/01-requisitos-e-contexto.md)
-- [03-api-e-streaming.md](file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/docs/specs/03-api-e-streaming.md)
+- [RFC-001 spec.md](file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/.specs/RFC-001-requisitos-e-contexto/spec.md)
+- [RFC-003 spec.md](file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/.specs/RFC-003-api-e-streaming/spec.md)
 - [guardrails.md](file:///home/kattson/Documents/case-gb-spec-2/gb-support-agent-case/.agents/rules/guardrails.md)
 
 ---

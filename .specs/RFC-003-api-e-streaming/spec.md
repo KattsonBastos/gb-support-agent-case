@@ -1,6 +1,6 @@
 # API, Streaming & Integração
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
-**Arquivo:** `docs/specs/03-api-e-streaming.md`
+**Arquivo:** `.specs/RFC-003-api-e-streaming/spec.md`
 **Propósito:** Definir os contratos de entrada/saída do FastAPI e detalhar o comportamento do Server-Sent Events (SSE) acoplado ao LangGraph[cite: 1, 2].
 
 ## 1. Stack Tecnológica e Endpoints

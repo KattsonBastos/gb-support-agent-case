@@ -33,7 +33,7 @@ flowchart TD
     
     %% Roteamento na Borda
     API -->|1. Verifica Semantic Cache| Redis
-    Redis -.->|Cache Hit (Resposta Imediata)| API
+    Redis -.->|Cache Hit - Resposta Imediata| API
     
     %% Fluxo Assíncrono
     API -->|2. Cache Miss: Envia Intenção| Broker

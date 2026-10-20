@@ -1,6 +1,9 @@
 """Testes unitários e de integração do motor cognitivo LangGraph (ReAct e Guardrails)."""
 
+import json
 from pathlib import Path
+from typing import Any
+from unittest.mock import patch
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
@@ -118,6 +121,38 @@ class TestLangGraphRoutingAndNodes:
         assert "sucesso" in result["messages"][0].content
         assert "Em transporte" in result["messages"][0].content
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "cpf_sessao, args_llm",
+        [
+            (None, {"cpf": CPF_CAMILA, "id_pedido": "PED-2001"}),  # CPF real da titular extraído do chat
+            ("", {"cpf": CPF_JULIANA, "id_pedido": "PED-1001"}),
+            (None, {"cpf": "sessao", "id_pedido": "PED-1001"}),
+        ],
+    )
+    async def test_executar_api_node_sem_cpf_sessao_bloqueia(self, cpf_sessao, args_llm):
+        """Sem CPF na sessão a Tool não é invocada, mesmo com CPF válido vindo do LLM (ADR-003)."""
+        ai_msg = AIMessage(
+            content="",
+            tool_calls=[{"name": "buscar_status_pedido", "args": args_llm, "id": "call_sem_cpf"}],
+        )
+        state: AgentState = {
+            "messages": [ai_msg],
+            "session_id": "sess-sem-cpf",
+            "cpf": cpf_sessao,
+            "contexto_recuperado": [],
+            "tentativas_tool": 0,
+        }
+        with patch("src.agent.graph.buscar_status_pedido") as tool_mock:
+            result = await executar_api_node(state)
+            tool_mock.invoke.assert_not_called()
+
+        content = result["messages"][0].content
+        assert json.loads(content)["codigo"] == "CPF_SESSAO_AUSENTE"
+        for dado_sensivel in ["Em transporte", "codigo_rastreio", "transportadora", "valor_total"]:
+            assert dado_sensivel not in content
+        assert "cpf" not in result["contexto_recuperado"][0]["args"]
+
 
 def _extract_text(content: Any) -> str:
     if isinstance(content, str):
@@ -177,6 +212,28 @@ class TestLangGraphEndToEnd:
             term.lower() in text.lower()
             for term in ["privacidade", "outro cpf", "lgpd", "autorizado", "pertence a outra", "não é permitido", "outro titular"]
         )
+
+    @pytest.mark.asyncio
+    async def test_end_to_end_sem_cpf_sessao_nao_vaza_pedido(self):
+        """Sessão sem CPF digitando o CPF da titular no chat não obtém dados do pedido."""
+        graph = get_compiled_graph()
+        config = {"configurable": {"thread_id": "thread-test-sem-cpf-e2e"}}
+        input_state = {
+            "messages": [
+                HumanMessage(content="Qual o status do pedido PED-2001? Meu CPF é 141.838.847-84")
+            ],
+            "session_id": "thread-test-sem-cpf-e2e",
+            "cpf": None,
+            "contexto_recuperado": [],
+            "tentativas_tool": 0,
+        }
+
+        final_state = await graph.ainvoke(input_state, config=config)
+        tool_outputs = [m.content for m in final_state["messages"] if isinstance(m, ToolMessage)]
+        assert tool_outputs and all("CPF_SESSAO_AUSENTE" in c for c in tool_outputs)
+        text = _extract_text(final_state["messages"][-1].content)
+        for dado_sensivel in ["Camila", "Entregue", "Em transporte", "rastreio:"]:
+            assert dado_sensivel not in text
 
     @pytest.mark.asyncio
     async def test_end_to_end_sigilo_comercial(self):

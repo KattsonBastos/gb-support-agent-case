@@ -41,6 +41,14 @@ class MockGeminiLLM(BaseChatModel):
             tool_content = last_message.content
             try:
                 data = json.loads(tool_content)
+                if data.get("status") == "erro" and data.get("codigo") == "CPF_SESSAO_AUSENTE":
+                    return {
+                        "text": (
+                            "Para consultar pedidos com segurança, preciso que o seu CPF esteja configurado "
+                            "na sessão de atendimento. Por privacidade, não utilizo CPFs informados na conversa."
+                        ),
+                        "tool_calls": [],
+                    }
                 if data.get("status") == "erro" and data.get("codigo") == "ACESSO_NEGADO":
                     return {
                         "text": (
@@ -105,15 +113,13 @@ class MockGeminiLLM(BaseChatModel):
         order_match = re.search(r"ped[-\s]?\d+", user_text_lower)
         if order_match or any(w in user_text_lower for w in ["pedido", "rastreio", "entrega", "faturado"]):
             id_pedido = order_match.group(0).upper().replace(" ", "") if order_match else "PED-1001"
-            # Extrai CPF ou usa fallback da sessão
-            cpf_match = re.search(r"\d{3}\.?\d{3}\.?\d{3}-?\d{2}", user_text)
-            cpf = cpf_match.group(0) if cpf_match else "52998224725"
+            # O CPF real é injetado pelo nó executar_api a partir da sessão (ADR-003)
             return {
                 "text": "",
                 "tool_calls": [
                     {
                         "name": "buscar_status_pedido",
-                        "args": {"cpf": cpf, "id_pedido": id_pedido},
+                        "args": {"cpf": "sessao", "id_pedido": id_pedido},
                         "id": "call_order_123",
                     }
                 ],

@@ -1,5 +1,6 @@
 """Construção do motor cognitivo LangGraph baseado no padrão ReAct com Agentic RAG."""
 
+import json
 from typing import Any, Dict, List
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
@@ -16,6 +17,19 @@ from src.tools.order_status import buscar_status_pedido
 
 # Lista de ferramentas disponibilizadas para o modelo
 TOOLS = [consultar_catalogo, buscar_status_pedido]
+
+# Erro de negócio retornado quando não há CPF vinculado à sessão (ADR-003)
+CPF_SESSAO_AUSENTE_PAYLOAD = json.dumps(
+    {
+        "status": "erro",
+        "codigo": "CPF_SESSAO_AUSENTE",
+        "mensagem": (
+            "Nenhum CPF está vinculado a esta sessão. Por segurança, a consulta de pedidos "
+            "exige o CPF da revendedora configurado na sessão; CPFs informados na conversa não são aceitos."
+        ),
+    },
+    ensure_ascii=False,
+)
 
 
 def get_llm(streaming: bool = True) -> BaseChatModel:
@@ -87,12 +101,16 @@ async def executar_api_node(state: AgentState) -> Dict[str, Any]:
                 args = dict(tc["args"])
 
                 # DEFESA EM PROFUNDIDADE DETERMINÍSTICA (ADR-003):
-                # O CPF autenticado na sessão tem precedência mandatória
+                # O CPF da sessão é obrigatório e sempre sobrescreve o CPF gerado pelo LLM.
+                # Sem CPF de sessão, a Tool NÃO é invocada (CPF digitado no chat não é aceito).
                 cpf_sessao = state.get("cpf")
                 if cpf_sessao:
                     args["cpf"] = cpf_sessao
+                    resultado = buscar_status_pedido.invoke(args)
+                else:
+                    args.pop("cpf", None)
+                    resultado = CPF_SESSAO_AUSENTE_PAYLOAD
 
-                resultado = buscar_status_pedido.invoke(args)
                 tool_messages.append(
                     ToolMessage(
                         content=resultado,

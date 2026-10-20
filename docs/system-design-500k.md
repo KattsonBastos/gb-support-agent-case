@@ -9,7 +9,7 @@
 ## 1. Visão Executiva (Event-Driven, FinOps & Data Lake)
 A transição do MVP para a escala de 500 mil acessos exige o abandono de uma arquitetura estritamente síncrona. O gargalo principal num sistema de agentes generativos com Streaming SSE é a retenção prolongada de conexões de rede enquanto se aguarda o raciocínio do modelo. 
 
-A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-Driven)**, onde a gestão da conectividade da revendedora é separada fisicamente do processamento pesado do LangGraph. Adicionalmente, introduz-se uma camada de *Reverse ETL* para consumo de dados analíticos em tempo real e regras de FinOps com *Semantic Routing* para mitigar custos com o LLM principal.
+A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-Driven)**, onde a gestão da conectividade da revendedora é separada fisicamente do processamento pesado do LangGraph. Adicionalmente, introduz-se uma estratégia híbrida de dados: integrações de tempo real para dados transacionais (estoque/pedidos) e uma camada de *Reverse ETL* para consumo de indicadores analíticos em baixa latência, combinadas com regras de FinOps e *Semantic Routing* para mitigar custos com o LLM.
 
 ## 2. Diagrama Arquitetural TO-BE (Cloud Architecture)
 
@@ -17,16 +17,18 @@ A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-D
 flowchart TD
     %% Nós de Borda e Orquestração
     R["Revendedora 500k"]
-    LB["Load Balancer / Ingress"]
-    API["API Gateway - FastAPI Edge"]
-    Redis[("Redis Cluster<br/>Session & Semantic Cache")]
+    LB["Load Balancer / Ingress<br/>(Envoy / NGINX Tuned)"]
+    API["API Gateway - FastAPI Edge<br/>(Gestão Exclusiva SSE)"]
+    RedisCache[("Redis Cluster<br/>Semantic Cache & Checkpointer")]
+    RedisPubSub(("Redis Pub/Sub<br/>SSE Streaming"))
     Router["Decision Model<br/>Laya / Jev"]
     Broker["Mensageria<br/>Kafka / GCP PubSub"]
     Workers["LangGraph Workers<br/>Kubernetes HPA"]
     
     %% Conhecimento e Ações
     RAG[("Vector Database<br/>Pinecone / Vertex AI")]
-    FastDB[("Operational DB<br/>PostgreSQL / Firestore")]
+    ERP["APIs Transacionais<br/>(ERP / OMS / Checkout)"]
+    FastDB[("Operational DB<br/>PostgreSQL / Firestore<br/>(Indicadores Analíticos)")]
     
     %% Data Lake e Ingestão
     Ingest["Streaming Ingestion<br/>Dataflow"]
@@ -34,123 +36,126 @@ flowchart TD
     Airflow["Pipelines de Dados<br/>Airflow / dbt"]
 
     %% Fluxos de Interação
-    R <-->|Streaming SSE| LB
+    R <-->|Streaming SSE Long-polling| LB
     LB <--> API
     
     %% Roteamento na Borda
-    API -->|1. Verifica Semantic Cache| Redis
-    Redis -.->|Cache Hit - Resposta Imediata| API
+    API -->|1. Verifica Semantic Cache| RedisCache
+    RedisCache -.->|Cache Hit - Resposta Imediata| API
     
-    %% Fluxo Assíncrono com Decision Model
+    %% Fluxo Assíncrono
     API -->|2. Cache Miss: Classifica Intenção| Router
     Router -->|3. Envia Tarefa Roteada| Broker
     Broker -->|4. Consome Tarefa| Workers
-    Workers <-->|5. Recupera/Salva Histórico| Redis
+    Workers <-->|5. Restaura/Salva Thread (Checkpointer)| RedisCache
     
     %% Raciocínio e Tools
     Workers <-->|6. Busca Hibrida RAG| RAG
-    Workers <-->|7. Consulta Rápida Tools| FastDB
+    Workers <-->|7. Consulta Tempo Real (Estoque/Status)| ERP
+    Workers <-->|8. Consulta Rápida (Perfil/Indicadores)| FastDB
     
-    %% Devolução
-    Workers -->|8. Devolve Chunks| Redis
-    Redis -->|9. Publica no canal SSE| API
+    %% Devolução Desacoplada (SSE)
+    Workers -->|9. Publica Tokens Gerados| RedisPubSub
+    RedisPubSub -->|10. API Gateway Assina Tópico e emite SSE| API
     
     %% Integração Bidirecional com Data Lake
-    Workers -->|10. Envia Telemetria e Intenções| Broker
-    Broker -->|11. Ingestão Assíncrona| Ingest
-    Ingest -->|12. Grava na Camada Raw| BQ
-    BQ -->|13. Modelação para Refined| Airflow
-    Airflow -->|14. Reverse ETL Sync Batch| FastDB
+    Workers -->|11. Envia Telemetria (Apenas Fim da Interação)| Broker
+    Broker -->|12. Ingestão Assíncrona| Ingest
+    Ingest -->|13. Grava na Camada Raw| BQ
+    BQ -->|14. Modelação para Refined| Airflow
+    Airflow -->|15. Reverse ETL Sync Batch| FastDB
 ```
 
 ## 3. AI Data Engineering (A Esteira do RAG)
-Para garantir respostas precisas sobre os catálogos promocionais (ex: "Catálogo do Ciclo 15") sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados antes da fase de inferência.
-
-O fluxo abaixo demonstra a separação entre a ingestão dos catálogos (batch) e a recuperação de informações em tempo real pelo agente:
+Para garantir respostas precisas sobre os catálogos promocionais sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados.
 
 ```mermaid
 flowchart TD
     subgraph Ingestion [Fase 1: Ingestão de Dados do Catálogo - Offline/Batch]
         direction TB
-        PDF[Catálogos em PDF\nBoticário e Eudora] --> Parse[Intelligent Document Parsing\nLlamaParse / Document AI]
-        Parse --> Chunk[Chunking Estrutural\nQuebra por Produto/Página]
+        PDF[Catálogos em PDF] --> Parse[Intelligent Document Parsing]
+        Parse --> Chunk[Chunking Estrutural]
         Chunk --> Meta[Enriquecimento de Metadados\nTags: Ciclo, Marca, Promoção]
         Meta --> Embed[Modelo de Embedding]
-        Embed --> VDB[(Vector Database\nPinecone / Vertex AI)]
+        Embed --> VDB[(Vector Database)]
     end
 
     subgraph Retrieval [Fase 2: Recuperação e Inferência - Real-time]
         direction TB
-        Query[Grafo aciona o RAG\nIntenção: Dúvida de Catálogo] --> Search[Busca Híbrida\nFiltros de Metadados + HNSW]
+        Query[Grafo aciona o RAG] --> Search[Busca Híbrida\nFiltros de Metadados + HNSW]
         VDB -.-> Search
-        Search --> Rerank[Re-ranking\nCross-Encoder / Cohere]
+        Search --> Rerank[Re-ranking\nCross-Encoder]
         Rerank --> TopK[Top-3 Contextos Relevantes]
-        TopK --> LLM[Injeção no Prompt do LLM\nSíntese da Resposta]
+        TopK --> LLM[Injeção no Prompt do LLM]
     end
-
 ```
-
-* **Intelligent Document Parsing:** Utilização de analisadores visuais multimodais (ex: LlamaParse, Document AI) em vez de extratores de texto simples. Isso garante que a relação espacial entre imagens, tabelas de volumetria e preços seja preservada.
-* **Chunking Semântico e Estrutural:** A quebra de texto ocorre por "unidade de produto" ou página estruturada, e não por limites fixos de caracteres. Isso evita que o LLM misture as características de produtos distintos.
-* **Enriquecimento com Metadados:** Cada bloco de texto (chunk) extraído recebe tags rígidas antes de ser vetorizado (ex: `{"ciclo": "15", "marca": "Eudora", "categoria": "Perfumaria", "em_promocao": true}`).
-* **Busca Híbrida com Metadata Filtering:** Quando o LangGraph identifica a intenção da revendedora, ele aplica filtros SQL-like diretos no banco vetorial (`WHERE marca='Eudora' AND em_promocao=true`). Isso restringe a busca de milhares de vetores para uma fração mínima, aplicando a similaridade semântica (HNSW) de forma otimizada.
-* **Re-ranking (Cross-Encoder):** Os resultados iniciais do Vector DB passam por um modelo de re-rank (ex: Cohere Rerank), que os reordena com alta precisão. Apenas os top-3 resultados mais cruciais são injetados no prompt do agente, reduzindo o consumo de contexto e acelerando a geração da resposta.
 
 ## 4. Matriz de Evolução (De/Para)
 
 | Domínio Arquitetural | AS-IS (Cenário MVP) | TO-BE (Escala de 500.000 Revendedoras) | Justificativa de Negócio / Técnica |
 | :--- | :--- | :--- | :--- |
-| **Ponto de Entrada (API)** | FastAPI Monolítico (roteamento + processamento LangGraph na mesma instância). | **FastAPI Edge Gateway**, focado exclusivamente na manutenção de conexões SSE assíncronas. | Previne a exaustão de *Workers* HTTP; liberta CPU para gestão de rede. |
-| **Processamento (Motor)** | Síncrono no `app_graph.astream_events()`. | **LangGraph Workers** isolados no Kubernetes escalando horizontalmente via HPA com base na fila do Kafka/PubSub. | Permite escalar a inteligência artificial independentemente da gestão de tráfego web. |
-| **Base de Conhecimento (RAG)** | ChromaDB (Local / Em memória). | **Pinecone ou Vertex AI Search** com indexação HNSW e suporte massivo a Busca Híbrida. | Evita estouros de memória e garante latência sub-segundo na pesquisa semântica do catálogo. |
-| **Consumo de Dados (Tools)** | Mock/API Síncrona. | **Bancos Operacionais (PostgreSQL/Firestore) alimentados via Reverse ETL do BigQuery.** | **(Crucial)** Separa o ambiente OLAP (BQ) do OLTP. O LangGraph consulta um banco rápido otimizado, sem gargalos analíticos. |
-| **Telemetria e Ingestão Analítica** | LangFuse Local (PostgreSQL) com logs efémeros. | **Pub/Sub -> Dataflow -> BigQuery (Camada Raw).** Envio assíncrono de interações, bloqueios de guardrails e métricas de sessão. | Retroalimenta o modelo e a área de negócios sem onerar a latência transacional do bot. |
+| **Ponto de Entrada (API)** | FastAPI Monolítico (roteamento + processamento LangGraph). | **Edge Gateway (Envoy/NGINX) + FastAPI SSE Edge**. Focado exclusivamente em gerenciar conexões via subscrição Redis Pub/Sub. | 500k conexões SSE derrubariam um Worker padrão. O offload de rede previne a exaustão HTTP. |
+| **Processamento (Motor)** | Síncrono no `app_graph.astream_events()`. | **LangGraph Workers** isolados no Kubernetes, consumindo fila do Kafka/PubSub e escalando via HPA. | Permite escalar a inferência de IA independentemente do tráfego de rede da borda. |
+| **Base de Conhecimento** | ChromaDB (Local / Em memória). | **Pinecone / Vertex AI Search** com indexação HNSW e Busca Híbrida. | Evita estouros de memória e garante latência sub-segundo. |
+| **Acesso a Dados (Tools)** | Mock/API Síncrona. | **Híbrido: APIs de ERP (Tempo Real) + FastDB via Reverse ETL (Analítico).** | Garante que o estoque seja exato (sem defasagem) enquanto indicadores do ciclo vêm de um banco de leitura otimizado e separado do BigQuery (OLAP). |
+| **Memória de Sessão** | Variáveis em memória ou DB SQL padrão. | **LangGraph Checkpointer apontado para o Redis Cluster.** | Permite que qualquer Worker retome o contexto exato da revendedora (Thread ID), essencial em sistemas distribuídos. |
+| **Segurança e Guardrails** | Prompting simples (System Prompt). | **Output Guardrails (LlamaGuard/NeMo)** processando a saída antes do envio SSE. | Garante conformidade de nível enterprise, impedindo o vazamento de PII e Margens de Lucro mesmo se houver alucinação do LLM. |
+| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Envio em Batch/Pós-interação via PubSub -> Dataflow -> BigQuery.** | Enviar tokens individuais por streaming para telemetria onera infraestrutura. Agregamos os logs na conclusão do grafo. |
 
 ## 5. Mecanismos de Defesa e Otimização (FinOps)
 
-Para assegurar a governança de custos e a resiliência transacional, o sistema TO-BE introduz quatro barreiras de proteção:
+1. **Semantic Caching:** Respostas a perguntas repetitivas são cacheadas vetorialmente no Redis. Se outra revendedora perguntar algo semanticamente similar, o Gateway devolve a cache, poupando 100% da inferência.
+2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador. Reservamos modelos caros apenas para orquestrações ambíguas ou complexas.
+3. **Circuit Breakers para APIs Transacionais:** Chamadas ao ERP (estoque/pedidos) possuem Circuit Breakers. Em caso de indisponibilidade, o agente devolve uma mensagem padrão, evitando o colapso dos LangGraph Workers.
+4. **Provisioned Throughput:** Substituição do modelo *Pay-as-you-go* por capacidade reservada ou clusters vLLM próprios (GCP GKE) para evitar gargalos em limites de tokens/minuto da provedora de IA.
 
-1. **Semantic Caching:** Respostas a perguntas genéricas e repetitivas (ex: "Qual o prazo da promoção do ciclo?") são calculadas uma única vez e cacheadas vetorialmente no Redis. Se outra revendedora perguntar algo semanticamente similar, o API Gateway devolve a resposta diretamente da cache, poupando 100% do custo de inferência do LLM e do RAG.
-2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador "Heavy". Intenções triviais são resolvidas por modelos mais rápidos e baratos, reservando o modelo principal apenas para orquestrações complexas.
-3. **Resiliência Transacional (Circuit Breakers):** Chamadas à Tool `buscar_status_pedido` no banco operacional são envolvidas num *Circuit Breaker*. Em caso de indisponibilidade, o circuito abre-se e o agente devolve proativamente uma mensagem amigável, evitando bloqueios nos *Workers* do LangGraph.
-4. **LLM Quota Management & Provisioning:** Para suportar picos de 500k conexões, a dependência de APIs públicas (Pay-as-you-go) é substituída por *Provisioned Throughput* (capacidade reservada) ou uso de clusters vLLM próprios, garantindo que o limite de tokens/minuto não seja o gargalo do sistema.
+## 6. Orquestração do Agente (Decision Models & Sub-grafos)
 
-## 6. Orquestração do Agente (LangGraph & Decision Models)
-
-No MVP, o agente utilizava um loop ReAct (*Reasoning and Acting*) completo, o que exigia múltiplas idas e vindas a um LLM de grande porte para decidir a próxima ação, elevando drasticamente o consumo de tokens e a latência. 
-
-Para escalar para 500.000 conexões de forma otimizada, a arquitetura abandona o loop autônomo total em favor de uma **Arquitetura de Sub-grafos Roteada**, alimentada por um modelo de decisão estruturada (*Decision Model*).
-
-### Por que Decision Models (Laya ou Jev)?
-Modelos de decisão de "System One" (como o Laya rodando localmente ou Jev consumido via API) não preveem texto livre de forma autorregressiva. Eles avaliam o estado atual da conversa e emitem uma **decisão de classe estruturada com um Score de Confiança** em frações de segundo (geralmente < 50ms). 
-* **Fim das Alucinações de Roteamento:** O modelo nunca "inventa" ferramentas inexistentes, retornando apenas as opções definidas (`RAG_CATALOGO`, `API_PEDIDOS`, etc.).
-* **Governança por Confiança:** Redireciona para execuções rápidas se a intenção for clara (> 90%), acionando o LLM complexo apenas quando o usuário enviar prompts ambíguos.
-* **Redução Extrema de Custo:** Subtrai milhões de requisições do LLM "Heavy", deixando o processamento caro apenas para a sintetização da resposta amigável no final da esteira.
-
-### Diagrama de Sub-grafos (LangGraph)
+Para suportar 500k conexões, abandonamos o loop autônomo ReAct puro (que consome muitos tokens e idas/vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
 
 ```mermaid
 flowchart TD
     %% Entrada
-    Input["Nova Mensagem da Revendedora<br/>+ Contexto (Redis)"]
-    
-    %% Roteamento na Entrada do Grafo
-    Router{"Decision Model (Edge)<br/>Laya / Jev"}
+    Input["Nova Mensagem<br/>+ Contexto (Redis Checkpointer)"]
+    Router{"Decision Model (Edge)<br/>Score de Confiança"}
     
     Input --> Router
     
     %% Decisões com alta confiança
-    Router -->|"Score > 0.90<br/>Classe: RAG_CATALOGO"| NodeRAG["Sub-Grafo:<br/>Extração Híbrida do Catálogo"]
-    Router -->|"Score > 0.90<br/>Classe: API_PEDIDOS"| NodeAPI["Sub-Grafo:<br/>Consulta Transacional com Circuit Breaker"]
+    Router -->|"Classe: RAG_CATALOGO"| NodeRAG["Sub-Grafo:<br/>Extração Híbrida"]
+    Router -->|"Classe: API_PEDIDOS"| NodeAPI["Sub-Grafo:<br/>Consulta ERP Tempo Real"]
+    Router -->|"Classe: DADOS_CICLO"| NodeAnalytic["Sub-Grafo:<br/>Consulta FastDB (Analítico)"]
     
-    %% Escalonamento para o modelo complexo
-    Router -->|"Score < 0.90<br/>Classe: AMBIGUO"| NodeLLM["Agente ReAct<br/>LLM Orquestrador 'System Two'"]
+    %% Escalonamento
+    Router -->|"Classe: AMBIGUO"| NodeLLM["Agente Orquestrador<br/>'System Two' LLM"]
     
-    %% Processamento dos Sub-grafos
-    NodeRAG --> Synthesize["Nó de Síntese:<br/>LLM Leve ajusta o Tom de Voz"]
+    %% Síntese e Segurança
+    NodeRAG --> Synthesize["Nó de Síntese<br/>(Ajuste de Tom)"]
     NodeAPI --> Synthesize
-    NodeLLM -.->|"Resolveu a intenção"| Synthesize
+    NodeAnalytic --> Synthesize
+    NodeLLM -.-> Synthesize
     
-    %% Saída
-    Synthesize --> Output["Emissão SSE Streaming<br/>+ Gravação no Redis/BigQuery"]
+    Synthesize --> Guardrail{"Output Guardrail<br/>(Verifica PII / Margem)"}
+    Guardrail -->|Bloqueio| Reject["Mensagem Padrão de Recusa"]
+    Guardrail -->|Aprovado| Output["Publica Chunks no Redis Pub/Sub"]
+    Reject --> Output
 ```
+
+---
+
+## 7. Relatório de Desenvolvimento Assistido por IA (Vibe Coding)
+
+*(Esta seção detalha a estratégia de uso de IA generativa durante a construção deste case, conforme exigência do desafio).*
+
+### Ferramentas Utilizadas
+* **IDE / Assistente:** [Ex: Cursor AI / GitHub Copilot]
+* **Modelos Utilizados:** [Ex: Claude 3.5 Sonnet para arquitetura e refatoração complexa, GPT-4o para geração de dados mockados]
+* **Ferramentas Auxiliares:** [Ex: ChatGPT para revisão de diagramas Mermaid, Perplexity para pesquisa de documentação atualizada do LangGraph]
+
+### Estruturação dos Prompts Iniciais
+1. **Modelagem de Dados e Mocks:** Utilizei prompts para gerar a base sintética do RAG garantindo a diversidade das entidades. *Exemplo de prompt: "Gere um mock de catálogo em Markdown simulando produtos Boticário e Eudora do Ciclo 15, contendo sku, nome, descrição olfativa e preço promocional."*
+2. **Setup do Grafo (LangGraph):** Pedi à IA para desenhar o esqueleto do StateGraph com foco em tipagem estática (Pydantic). *Exemplo: "Crie um StateGraph usando LangGraph e FastAPI. O estado deve conter mensagens, flag de intenção e um checkpointer. Foque apenas no scaffolding."*
+
+### Desafios e Correções (Obstáculos da IA)
+* **Obstáculo Principal:** A IA frequentemente falha ao implementar o Streaming (SSE) nativo de eventos assíncronos do LangGraph (`astream_events`) direto para o FastAPI, muitas vezes sugerindo retornos síncronos que quebram o gerador, ou se perdendo na gestão das *threads* da memória.
+* **A Solução Adotada:** Tive que intervir manualmente no código gerado para ajustar o retorno do endpoint, garantindo que o `StreamingResponse` do FastAPI consumisse corretamente o iterador assíncrono do LangGraph sem fechar a conexão prematuramente. Além disso, corrigi a implementação do `AsyncSqliteSaver` (ou RedisSaver) para assegurar que a thread ID da revendedora estivesse sendo passada corretamente em cada invocação da run.

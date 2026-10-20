@@ -27,16 +27,24 @@ Para garantir a escalabilidade técnica e a segurança operacional exigidas pelo
 ## 3. Instruções para Rodar Localmente
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;
-O projeto foi integralmente dockerizado para emular um ambiente de microsserviços. Os bancos de dados (Vector Store e SQLite do State) persistem os dados mapeando volumes locais.
+O projeto foi integralmente dockerizado para facilitar a execução local. Os bancos de dados (Vector Store e SQLite do State) persistem os dados mapeando volumes locais.
 </p>
 
 **Pré-requisitos:** Docker e Docker Compose instalados.
 
 1.  Clone este repositório:
-    ```bash
-    git clone git@github.com:KattsonBastos/gb-support-agent-case.git
-    cd git@github.com:KattsonBastos/gb-support-agent-case.git
-    ```
+
+    *   Com SSH:
+        ```bash
+        git clone git@github.com:KattsonBastos/gb-support-agent-case.git
+        cd git@github.com:KattsonBastos/gb-support-agent-case.git
+        ```
+    *   Com HTTPS:
+        ```bash
+        git clone https://github.com/KattsonBastos/gb-support-agent-case.git
+        cd gb-support-agent-case
+        ```
+
 2.  Configure as variáveis de ambiente:
     *   Duplique o arquivo [`.env.example`](.env.example) e renomeie para `.env`.
     *   Insira as suas chaves de API (`OPENAI_API_KEY` ou `GOOGLE_API_KEY`, e credenciais do `LANGFUSE` para observabilidade).
@@ -53,13 +61,13 @@ O projeto foi integralmente dockerizado para emular um ambiente de microsserviç
 
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;
-Conforme exigido pelo escopo do desafio, a esteira de desenvolvimento foi fortemente assistida por IA. Adotei uma metodologia de **Contract-First Vibe Coding**, garantindo que as fronteiras arquiteturais guiassem a geração de código.
+Abaixo segue um descritivo de como a IA foi utilizada no desenvolvimento deste projeto:
 </p>
 
 *   **Ferramentas Utilizadas:** Gemini Chat para a idealização, discussão arquitetural e de produto; Google Antigravity IDE orquestrando o modelo **Gemini 3.8 Flash** para a implementação e estruturação de boilerplate.
 *   **Estruturação de Prompts:**
-    *   **Vibe coding via prompts:** Discussão e criação das [ADRs](docs/adrs) e diagramas do [Modelo C4](docs/c4-model).
-    *   **Framework customizado de Spec-Driven Development (SDD):** Criado por mim mesmo para a parte da implementação. Aqui estão as especificações em [.specs](.specs) e as [skills de SDD](.agents/skills) foram versionadas apenas para fins de explicação.
+    *   **Vibe coding via prompts com o Gemini:** Discussão e criação das [ADRs](docs/adrs) e diagramas do [Modelo C4](docs/c4-model).
+    *   **Framework pessoal de Spec-Driven Development (SDD):** Para a implementação, foi utilizado o SDD com um framework lighweight pessoal (registro em [.specs](.specs)). As [skills de SDD](.agents/skills) foram versionadas apenas para fins de explicação.
     *   **Prompts Vibe Coding:** Registro em [docs/vibe-coding-prompts](docs/vibe-coding-prompts) dos prompts usados no vibe coding via chat para atividades gerais.
 *   **O Maior Obstáculo da IA:** Durante a implementação do LangGraph, a IA teve grande dificuldade em correlacionar o gerador assíncrono do grafo (`.astream_events()`) com o formato exigido pelo `StreamingResponse` do FastAPI. O modelo insistia em devolver objetos internos de roteamento do LangChain no meio do stream SSE, quebrando a interface do usuário.
 *   **A Correção (Human-in-the-Loop):** Intervi criando um filtro heurístico na função geradora do FastAPI ([`src/api/routes.py`](src/api/routes.py)). Ajustei o loop assíncrono para inspecionar os dicionários gerados pelo evento, garantindo que o `yield` ocorresse estritamente quando a chave `"event"` fosse `on_chat_model_stream`, formatando manualmente o chunk no padrão nativo de Server-Sent Events (`data: {chunk}\n\n`).

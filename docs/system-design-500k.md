@@ -46,8 +46,8 @@ flowchart TD
     Workers <-->|4. Recupera/Salva Histórico| Redis
     
     %% Raciocínio e Tools
-    Workers <-->|5. Busca Híbrida (RAG)| RAG
-    Workers <-->|6. Consulta Rápida (Tools)| FastDB
+    Workers <-->|5. Busca Hibrida RAG| RAG
+    Workers <-->|6. Consulta Rápida Tools| FastDB
     
     %% Devolução
     Workers -->|7. Devolve Chunks| Redis
@@ -58,10 +58,19 @@ flowchart TD
     Broker -->|10. Ingestão Assíncrona| Ingest
     Ingest -->|11. Grava na Camada Raw| BQ
     BQ -->|12. Modelação para Refined| Airflow
-    Airflow -->|13. Reverse ETL (Sync Batch)| FastDB
+    Airflow -->|13. Reverse ETL Sync Batch| FastDB
 ```
 
-## 3. Matriz de Evolução (De/Para)
+## 3. AI Data Engineering (A Esteira do RAG)
+Para garantir respostas precisas sobre os catálogos promocionais (ex: "Catálogo do Ciclo 15") sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados antes da fase de inferência:
+
+* **Intelligent Document Parsing:** Utilização de analisadores visuais multimodais (ex: LlamaParse, Document AI) em vez de extratores de texto simples. Isso garante que a relação espacial entre imagens, tabelas de volumetria e preços seja preservada.
+* **Chunking Semântico e Estrutural:** A quebra de texto ocorre por "unidade de produto" ou página estruturada, e não por limites fixos de caracteres. Isso evita que o LLM misture as características de produtos distintos.
+* **Enriquecimento com Metadados:** Cada bloco de texto (chunk) extraído recebe tags rígidas antes de ser vetorizado (ex: `{"ciclo": "15", "marca": "Eudora", "categoria": "Perfumaria", "em_promocao": true}`).
+* **Busca Híbrida com Metadata Filtering:** Quando o LangGraph identifica a intenção da revendedora, ele aplica filtros SQL-like diretos no banco vetorial (`WHERE marca='Eudora' AND em_promocao=true`). Isso restringe a busca de milhares de vetores para uma fração mínima, aplicando a similaridade semântica (HNSW) de forma otimizada.
+* **Re-ranking (Cross-Encoder):** Os resultados iniciais do Vector DB passam por um modelo de re-rank (ex: Cohere Rerank), que os reordena com alta precisão. Apenas os top-3 resultados mais cruciais são injetados no prompt do agente, reduzindo o consumo de contexto e acelerando a geração da resposta.
+
+## 4. Matriz de Evolução (De/Para)
 
 | Domínio Arquitetural | AS-IS (Cenário MVP) | TO-BE (Escala de 500.000 Revendedoras) | Justificativa de Negócio / Técnica |
 | :--- | :--- | :--- | :--- |
@@ -71,7 +80,7 @@ flowchart TD
 | **Consumo de Dados (Tools)** | Mock/API Síncrona. | **Bancos Operacionais (PostgreSQL/Firestore) alimentados via Reverse ETL do BigQuery.** | **(Crucial)** Separa o ambiente OLAP (BQ) do OLTP. O LangGraph consulta um banco rápido otimizado, sem gargalos analíticos. |
 | **Telemetria e Ingestão Analítica** | LangFuse Local (PostgreSQL) com logs efémeros. | **Pub/Sub -> Dataflow -> BigQuery (Camada Raw).** Envio assíncrono de interações, bloqueios de guardrails e métricas de sessão. | Retroalimenta o modelo e a área de negócios sem onerar a latência transacional do bot. |
 
-## 4. Mecanismos de Defesa e Otimização (FinOps)
+## 5. Mecanismos de Defesa e Otimização (FinOps)
 
 Para assegurar a governança de custos e a resiliência transacional, o sistema TO-BE introduz quatro barreiras de proteção:
 

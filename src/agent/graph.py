@@ -1,9 +1,11 @@
 """Construção do motor cognitivo LangGraph baseado no padrão ReAct com Agentic RAG."""
 
+import json
 from typing import Any, Dict, List
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
@@ -16,6 +18,19 @@ from src.tools.order_status import buscar_status_pedido
 
 # Lista de ferramentas disponibilizadas para o modelo
 TOOLS = [consultar_catalogo, buscar_status_pedido]
+
+# Erro de negócio retornado quando não há CPF vinculado à sessão (ADR-003)
+CPF_SESSAO_AUSENTE_PAYLOAD = json.dumps(
+    {
+        "status": "erro",
+        "codigo": "CPF_SESSAO_AUSENTE",
+        "mensagem": (
+            "Nenhum CPF está vinculado a esta sessão. Por segurança, a consulta de pedidos "
+            "exige o CPF da revendedora configurado na sessão; CPFs informados na conversa não são aceitos."
+        ),
+    },
+    ensure_ascii=False,
+)
 
 
 def get_llm(streaming: bool = True) -> BaseChatModel:
@@ -87,12 +102,16 @@ async def executar_api_node(state: AgentState) -> Dict[str, Any]:
                 args = dict(tc["args"])
 
                 # DEFESA EM PROFUNDIDADE DETERMINÍSTICA (ADR-003):
-                # O CPF autenticado na sessão tem precedência mandatória
+                # O CPF da sessão é obrigatório e sempre sobrescreve o CPF gerado pelo LLM.
+                # Sem CPF de sessão, a Tool NÃO é invocada (CPF digitado no chat não é aceito).
                 cpf_sessao = state.get("cpf")
                 if cpf_sessao:
                     args["cpf"] = cpf_sessao
+                    resultado = buscar_status_pedido.invoke(args)
+                else:
+                    args.pop("cpf", None)
+                    resultado = CPF_SESSAO_AUSENTE_PAYLOAD
 
-                resultado = buscar_status_pedido.invoke(args)
                 tool_messages.append(
                     ToolMessage(
                         content=resultado,
@@ -158,15 +177,28 @@ def create_agent_graph() -> StateGraph:
     return workflow
 
 
-# Instância única compilada em memória com Checkpointer para isolamento de sessão
+# Instância única compilada com Checkpointer para isolamento de sessão
 _compiled_graph = None
 
 
+def set_compiled_graph(checkpointer: BaseCheckpointSaver) -> None:
+    """Compila o grafo com um checkpointer externo (ex.: AsyncRedisSaver) - ADR-001."""
+    global _compiled_graph
+    _compiled_graph = create_agent_graph().compile(checkpointer=checkpointer)
+
+
+def reset_compiled_graph() -> None:
+    """Descarta o grafo compilado (ex.: no shutdown, ao fechar a conexão com o Redis)."""
+    global _compiled_graph
+    _compiled_graph = None
+
+
 def get_compiled_graph():
-    """Retorna o grafo compilado com MemorySaver para isolamento por session_id (thread_id)."""
+    """Retorna o grafo compilado; sem checkpointer injetado, usa MemorySaver (fallback local/testes).
+
+    O isolamento por session_id é garantido via `configurable.thread_id`.
+    """
     global _compiled_graph
     if _compiled_graph is None:
-        workflow = create_agent_graph()
-        checkpointer = MemorySaver()
-        _compiled_graph = workflow.compile(checkpointer=checkpointer)
+        _compiled_graph = create_agent_graph().compile(checkpointer=MemorySaver())
     return _compiled_graph

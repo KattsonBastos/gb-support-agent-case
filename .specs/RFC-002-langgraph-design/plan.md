@@ -149,5 +149,15 @@ Arquivo: `tests/test_agent.py` (pytest + pytest-asyncio, executando com `MockGem
 
 ## 7. Fora de Escopo / Evoluções Futuras
 - Guardrail Nível 2 (filtro heurístico de saída na resposta final).
-- Checkpointer persistente (SQLite/Redis) — ver tabela de NFRs do RFC-001.
+- ~~Checkpointer persistente (SQLite/Redis)~~ — implementado; ver seção 8.
 - Execução paralela de múltiplas `tool_calls` de tipos diferentes na mesma iteração (hoje o roteamento usa a primeira).
+
+---
+
+## 8. Adendo — Checkpointer Redis e CPF de Sessão Obrigatório
+| Decisão | Justificativa |
+| :--- | :--- |
+| Nova dependência `langgraph-checkpoint-redis` (`AsyncRedisSaver`) | Checkpointer oficial do LangGraph para Redis; versão assíncrona compatível com `astream_events`. Estado sobrevive a reinícios e é compartilhável entre réplicas (ADR-001). |
+| Container `redis:8` no `docker-compose` | Inclui os módulos RedisJSON/RediSearch exigidos pelo saver; persistência AOF em volume `redis-data`. |
+| Ciclo de vida via `lifespan` do FastAPI (`src/agent/checkpointer.py`) | `asetup()` é assíncrono; conexão aberta na subida e fechada no shutdown. Sem `REDIS_URL` ou com Redis indisponível, degrada para `MemorySaver` (suíte de testes sem rede). |
+| `executar_api` exige `state["cpf"]` | Sem CPF de sessão a Tool não é invocada (`CPF_SESSAO_AUSENTE`); CPF digitado no chat nunca é usado (ADR-003). |

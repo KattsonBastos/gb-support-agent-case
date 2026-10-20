@@ -20,6 +20,7 @@ flowchart TD
     LB[Load Balancer / Ingress]
     API[API Gateway - FastAPI Edge]
     Redis[(Redis Cluster\nSession & Semantic Cache)]
+    Router[Decision Model\nLaya / Jev]
     Broker[Mensageria\nKafka / GCP PubSub]
     Workers[LangGraph Workers\nKubernetes HPA]
     
@@ -40,25 +41,26 @@ flowchart TD
     API -->|1. Verifica Semantic Cache| Redis
     Redis -.->|Cache Hit - Resposta Imediata| API
     
-    %% Fluxo Assíncrono
-    API -->|2. Cache Miss: Envia Intenção| Broker
-    Broker -->|3. Consome Tarefa| Workers
-    Workers <-->|4. Recupera/Salva Histórico| Redis
+    %% Fluxo Assíncrono com Decision Model
+    API -->|2. Cache Miss: Classifica Intenção| Router
+    Router -->|3. Envia Tarefa Roteada| Broker
+    Broker -->|4. Consome Tarefa| Workers
+    Workers <-->|5. Recupera/Salva Histórico| Redis
     
     %% Raciocínio e Tools
-    Workers <-->|5. Busca Hibrida RAG| RAG
-    Workers <-->|6. Consulta Rápida Tools| FastDB
+    Workers <-->|6. Busca Hibrida RAG| RAG
+    Workers <-->|7. Consulta Rápida Tools| FastDB
     
     %% Devolução
-    Workers -->|7. Devolve Chunks| Redis
-    Redis -->|8. Publica no canal SSE| API
+    Workers -->|8. Devolve Chunks| Redis
+    Redis -->|9. Publica no canal SSE| API
     
     %% Integração Bidirecional com Data Lake
-    Workers -->|9. Envia Telemetria e Intenções| Broker
-    Broker -->|10. Ingestão Assíncrona| Ingest
-    Ingest -->|11. Grava na Camada Raw| BQ
-    BQ -->|12. Modelação para Refined| Airflow
-    Airflow -->|13. Reverse ETL Sync Batch| FastDB
+    Workers -->|10. Envia Telemetria e Intenções| Broker
+    Broker -->|11. Ingestão Assíncrona| Ingest
+    Ingest -->|12. Grava na Camada Raw| BQ
+    BQ -->|13. Modelação para Refined| Airflow
+    Airflow -->|14. Reverse ETL Sync Batch| FastDB
 ```
 
 ## 3. AI Data Engineering (A Esteira do RAG)
@@ -88,3 +90,43 @@ Para assegurar a governança de custos e a resiliência transacional, o sistema 
 2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador "Heavy". Intenções triviais são resolvidas por modelos mais rápidos e baratos, reservando o modelo principal apenas para orquestrações complexas.
 3. **Resiliência Transacional (Circuit Breakers):** Chamadas à Tool `buscar_status_pedido` no banco operacional são envolvidas num *Circuit Breaker*. Em caso de indisponibilidade, o circuito abre-se e o agente devolve proativamente uma mensagem amigável, evitando bloqueios nos *Workers* do LangGraph.
 4. **LLM Quota Management & Provisioning:** Para suportar picos de 500k conexões, a dependência de APIs públicas (Pay-as-you-go) é substituída por *Provisioned Throughput* (capacidade reservada) ou uso de clusters vLLM próprios, garantindo que o limite de tokens/minuto não seja o gargalo do sistema.
+
+## 6. Orquestração do Agente (LangGraph & Decision Models)
+
+No MVP, o agente utilizava um loop ReAct (*Reasoning and Acting*) completo, o que exigia múltiplas idas e vindas a um LLM de grande porte para decidir a próxima ação, elevando drasticamente o consumo de tokens e a latência. 
+
+Para escalar para 500.000 conexões de forma otimizada, a arquitetura abandona o loop autônomo total em favor de uma **Arquitetura de Sub-grafos Roteada**, alimentada por um modelo de decisão estruturada (*Decision Model*).
+
+### Por que Decision Models (Laya ou Jev)?
+Modelos de decisão de "System One" (como o Laya rodando localmente ou Jev consumido via API) não preveem texto livre de forma autorregressiva. Eles avaliam o estado atual da conversa e emitem uma **decisão de classe estruturada com um Score de Confiança** em frações de segundo (geralmente < 50ms). 
+* **Fim das Alucinações de Roteamento:** O modelo nunca "inventa" ferramentas inexistentes, retornando apenas as opções definidas (`RAG_CATALOGO`, `API_PEDIDOS`, etc.).
+* **Governança por Confiança:** Redireciona para execuções rápidas se a intenção for clara (> 90%), acionando o LLM complexo apenas quando o usuário enviar prompts ambíguos.
+* **Redução Extrema de Custo:** Subtrai milhões de requisições do LLM "Heavy", deixando o processamento caro apenas para a sintetização da resposta amigável no final da esteira.
+
+### Diagrama de Sub-grafos (LangGraph)
+
+```mermaid
+flowchart TD
+    %% Entrada
+    Input[Nova Mensagem da Revendedora\n+ Contexto (Redis)]
+    
+    %% Roteamento na Entrada do Grafo
+    Router{"Decision Model (Edge)\nLaya / Jev"}
+    
+    Input --> Router
+    
+    %% Decisões com alta confiança
+    Router -->|Score > 0.90\nClasse: RAG_CATALOGO| NodeRAG[Sub-Grafo:\nExtração Híbrida do Catálogo]
+    Router -->|Score > 0.90\nClasse: API_PEDIDOS| NodeAPI[Sub-Grafo:\nConsulta Transacional com Circuit Breaker]
+    
+    %% Escalonamento para o modelo complexo
+    Router -->|Score < 0.90\nClasse: AMBIGUO| NodeLLM[Agente ReAct\nLLM Orquestrador 'System Two']
+    
+    %% Processamento dos Sub-grafos
+    NodeRAG --> Synthesize[Nó de Síntese:\nLLM Leve ajusta o Tom de Voz]
+    NodeAPI --> Synthesize
+    NodeLLM -.->|Resolveu a intenção| Synthesize
+    
+    %% Saída
+    Synthesize --> Output[Emissão SSE Streaming\n+ Gravação no Redis/BigQuery]
+```

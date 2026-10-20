@@ -16,22 +16,22 @@ A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-D
 ```mermaid
 flowchart TD
     %% Nós de Borda e Orquestração
-    R[Revendedora 500k]
-    LB[Load Balancer / Ingress]
-    API[API Gateway - FastAPI Edge]
-    Redis[(Redis Cluster\nSession & Semantic Cache)]
-    Router[Decision Model\nLaya / Jev]
-    Broker[Mensageria\nKafka / GCP PubSub]
-    Workers[LangGraph Workers\nKubernetes HPA]
+    R["Revendedora 500k"]
+    LB["Load Balancer / Ingress"]
+    API["API Gateway - FastAPI Edge"]
+    Redis[("Redis Cluster<br/>Session & Semantic Cache")]
+    Router["Decision Model<br/>Laya / Jev"]
+    Broker["Mensageria<br/>Kafka / GCP PubSub"]
+    Workers["LangGraph Workers<br/>Kubernetes HPA"]
     
     %% Conhecimento e Ações
-    RAG[(Vector Database\nPinecone / Vertex AI)]
-    FastDB[(Operational DB\nPostgreSQL / Firestore)]
+    RAG[("Vector Database<br/>Pinecone / Vertex AI")]
+    FastDB[("Operational DB<br/>PostgreSQL / Firestore")]
     
     %% Data Lake e Ingestão
-    Ingest[Streaming Ingestion\nDataflow]
-    BQ[(Data Lake - BigQuery\nRaw / Trusted / Refined)]
-    Airflow[Pipelines de Dados\nAirflow / dbt]
+    Ingest["Streaming Ingestion<br/>Dataflow"]
+    BQ[("Data Lake - BigQuery<br/>Raw / Trusted / Refined")]
+    Airflow["Pipelines de Dados<br/>Airflow / dbt"]
 
     %% Fluxos de Interação
     R <-->|Streaming SSE| LB
@@ -108,25 +108,25 @@ Modelos de decisão de "System One" (como o Laya rodando localmente ou Jev consu
 ```mermaid
 flowchart TD
     %% Entrada
-    Input[Nova Mensagem da Revendedora\n+ Contexto (Redis)]
+    Input["Nova Mensagem da Revendedora<br/>+ Contexto (Redis)"]
     
     %% Roteamento na Entrada do Grafo
-    Router{"Decision Model (Edge)\nLaya / Jev"}
+    Router{"Decision Model (Edge)<br/>Laya / Jev"}
     
     Input --> Router
     
     %% Decisões com alta confiança
-    Router -->|Score > 0.90\nClasse: RAG_CATALOGO| NodeRAG[Sub-Grafo:\nExtração Híbrida do Catálogo]
-    Router -->|Score > 0.90\nClasse: API_PEDIDOS| NodeAPI[Sub-Grafo:\nConsulta Transacional com Circuit Breaker]
+    Router -->|"Score > 0.90<br/>Classe: RAG_CATALOGO"| NodeRAG["Sub-Grafo:<br/>Extração Híbrida do Catálogo"]
+    Router -->|"Score > 0.90<br/>Classe: API_PEDIDOS"| NodeAPI["Sub-Grafo:<br/>Consulta Transacional com Circuit Breaker"]
     
     %% Escalonamento para o modelo complexo
-    Router -->|Score < 0.90\nClasse: AMBIGUO| NodeLLM[Agente ReAct\nLLM Orquestrador 'System Two']
+    Router -->|"Score < 0.90<br/>Classe: AMBIGUO"| NodeLLM["Agente ReAct<br/>LLM Orquestrador 'System Two'"]
     
     %% Processamento dos Sub-grafos
-    NodeRAG --> Synthesize[Nó de Síntese:\nLLM Leve ajusta o Tom de Voz]
+    NodeRAG --> Synthesize["Nó de Síntese:<br/>LLM Leve ajusta o Tom de Voz"]
     NodeAPI --> Synthesize
-    NodeLLM -.->|Resolveu a intenção| Synthesize
+    NodeLLM -.->|"Resolveu a intenção"| Synthesize
     
     %% Saída
-    Synthesize --> Output[Emissão SSE Streaming\n+ Gravação no Redis/BigQuery]
+    Synthesize --> Output["Emissão SSE Streaming<br/>+ Gravação no Redis/BigQuery"]
 ```

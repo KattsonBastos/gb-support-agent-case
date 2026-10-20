@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # Circuit Breaker e Limites do Grafo
     CIRCUIT_BREAKER_LIMIT: int = 5
 
+    # Estado das Sessões (Checkpointer LangGraph - ADR-001)
+    # Sem REDIS_URL o grafo utiliza MemorySaver (testes/dev local).
+    REDIS_URL: Optional[str] = None
+    CHECKPOINT_TTL_MINUTES: int = 1440
+
     # Minimização de PII (pseudonimização do CPF em telemetria)
     PII_HASH_SALT: str = "gb-local-dev-salt"
 

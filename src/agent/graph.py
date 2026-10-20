@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
@@ -176,15 +177,28 @@ def create_agent_graph() -> StateGraph:
     return workflow
 
 
-# Instância única compilada em memória com Checkpointer para isolamento de sessão
+# Instância única compilada com Checkpointer para isolamento de sessão
 _compiled_graph = None
 
 
+def set_compiled_graph(checkpointer: BaseCheckpointSaver) -> None:
+    """Compila o grafo com um checkpointer externo (ex.: AsyncRedisSaver) - ADR-001."""
+    global _compiled_graph
+    _compiled_graph = create_agent_graph().compile(checkpointer=checkpointer)
+
+
+def reset_compiled_graph() -> None:
+    """Descarta o grafo compilado (ex.: no shutdown, ao fechar a conexão com o Redis)."""
+    global _compiled_graph
+    _compiled_graph = None
+
+
 def get_compiled_graph():
-    """Retorna o grafo compilado com MemorySaver para isolamento por session_id (thread_id)."""
+    """Retorna o grafo compilado; sem checkpointer injetado, usa MemorySaver (fallback local/testes).
+
+    O isolamento por session_id é garantido via `configurable.thread_id`.
+    """
     global _compiled_graph
     if _compiled_graph is None:
-        workflow = create_agent_graph()
-        checkpointer = MemorySaver()
-        _compiled_graph = workflow.compile(checkpointer=checkpointer)
+        _compiled_graph = create_agent_graph().compile(checkpointer=MemorySaver())
     return _compiled_graph

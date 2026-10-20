@@ -64,7 +64,31 @@ flowchart TD
 ```
 
 ## 3. AI Data Engineering (A Esteira do RAG)
-Para garantir respostas precisas sobre os catálogos promocionais (ex: "Catálogo do Ciclo 15") sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados antes da fase de inferência:
+Para garantir respostas precisas sobre os catálogos promocionais (ex: "Catálogo do Ciclo 15") sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados antes da fase de inferência.
+
+O fluxo abaixo demonstra a separação entre a ingestão dos catálogos (batch) e a recuperação de informações em tempo real pelo agente:
+
+```mermaid
+flowchart TD
+    subgraph Ingestion [Fase 1: Ingestão de Dados do Catálogo - Offline/Batch]
+        direction TB
+        PDF[Catálogos em PDF\nBoticário e Eudora] --> Parse[Intelligent Document Parsing\nLlamaParse / Document AI]
+        Parse --> Chunk[Chunking Estrutural\nQuebra por Produto/Página]
+        Chunk --> Meta[Enriquecimento de Metadados\nTags: Ciclo, Marca, Promoção]
+        Meta --> Embed[Modelo de Embedding]
+        Embed --> VDB[(Vector Database\nPinecone / Vertex AI)]
+    end
+
+    subgraph Retrieval [Fase 2: Recuperação e Inferência - Real-time]
+        direction TB
+        Query[Grafo aciona o RAG\nIntenção: Dúvida de Catálogo] --> Search[Busca Híbrida\nFiltros de Metadados + HNSW]
+        VDB -.-> Search
+        Search --> Rerank[Re-ranking\nCross-Encoder / Cohere]
+        Rerank --> TopK[Top-3 Contextos Relevantes]
+        TopK --> LLM[Injeção no Prompt do LLM\nSíntese da Resposta]
+    end
+
+```
 
 * **Intelligent Document Parsing:** Utilização de analisadores visuais multimodais (ex: LlamaParse, Document AI) em vez de extratores de texto simples. Isso garante que a relação espacial entre imagens, tabelas de volumetria e preços seja preservada.
 * **Chunking Semântico e Estrutural:** A quebra de texto ocorre por "unidade de produto" ou página estruturada, e não por limites fixos de caracteres. Isso evita que o LLM misture as características de produtos distintos.

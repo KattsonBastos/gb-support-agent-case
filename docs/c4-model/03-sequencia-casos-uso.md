@@ -136,4 +136,4 @@ sequenceDiagram
     end
     UX-->>R: Exibe: "Informações comerciais e margens de lucro de outras revendedoras são confidenciais..."
 ```
-**Explicação da Decisão:** Este diagrama ilustra o padrão de Defesa em Profundidade. Mostra para os avaliadores que você não gastou latência e dinheiro (FinOps) chamando o banco de dados desnecessariamente. A requisição maliciosa ou fora de escopo morre rapidamente na camada cognitiva do LangGraph.
+**Explicação da Decisão:** Este diagrama ilustra o padrão de Defesa em Profundidade, demonstrando que não há desperdício de latência nem de custos (FinOps) com chamadas desnecessárias ao banco de dados. A requisição maliciosa ou fora de escopo é encerrada precocemente na camada cognitiva do LangGraph.

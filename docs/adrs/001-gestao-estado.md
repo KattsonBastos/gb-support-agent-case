@@ -1,5 +1,7 @@
 # ADR-001: Gestão de Estado e Memória em Larga Escala
-**Data:** [Data de Hoje]
+
+**Data:** 17/10/2026
+
 **Status:** Aceito
 
 ## Contexto

@@ -1,5 +1,7 @@
 # ADR-004: Estratégia de Ingestão e Chunking para RAG
-**Data:** [Data de Hoje]
+
+**Data:** 17/10/2026
+
 **Status:** Aceito
 
 ## Contexto

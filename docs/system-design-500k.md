@@ -13,6 +13,8 @@ A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-D
 
 ## 2. Diagrama Arquitetural TO-BE (Cloud Architecture)
 
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-cloud-architecture.png](diagrams/system-design-cloud-architecture.png).
+
 ```mermaid
 flowchart TD
     %% Nós de Borda e Orquestração
@@ -36,38 +38,40 @@ flowchart TD
     Airflow["Pipelines de Dados<br/>Airflow / dbt"]
 
     %% Fluxos de Interação
-    R <-->|Streaming SSE Long-polling| LB
+    R <-->|"Streaming SSE Long-polling"| LB
     LB <--> API
     
     %% Roteamento na Borda
-    API -->|1. Verifica Semantic Cache| RedisCache
-    RedisCache -.->|Cache Hit - Resposta Imediata| API
+    API -->|"1. Verifica Semantic Cache"| RedisCache
+    RedisCache -.->|"Cache Hit - Resposta Imediata"| API
     
     %% Fluxo Assíncrono
-    API -->|2. Cache Miss: Classifica Intenção| Router
-    Router -->|3. Envia Tarefa Roteada| Broker
-    Broker -->|4. Consome Tarefa| Workers
-    Workers <-->|5. Restaura/Salva Thread (Checkpointer)| RedisCache
+    API -->|"2. Cache Miss: Classifica Intenção"| Router
+    Router -->|"3. Envia Tarefa Roteada"| Broker
+    Broker -->|"4. Consome Tarefa"| Workers
+    Workers <-->|"5. Restaura/Salva Thread (Checkpointer)"| RedisCache
     
     %% Raciocínio e Tools
-    Workers <-->|6. Busca Hibrida RAG| RAG
-    Workers <-->|7. Consulta Tempo Real (Estoque/Status)| ERP
-    Workers <-->|8. Consulta Rápida (Perfil/Indicadores)| FastDB
+    Workers <-->|"6. Busca Hibrida RAG"| RAG
+    Workers <-->|"7. Consulta Tempo Real (Estoque/Status)"| ERP
+    Workers <-->|"8. Consulta Rápida (Perfil/Indicadores)"| FastDB
     
     %% Devolução Desacoplada (SSE)
-    Workers -->|9. Publica Tokens Gerados| RedisPubSub
-    RedisPubSub -->|10. API Gateway Assina Tópico e emite SSE| API
+    Workers -->|"9. Publica Tokens Gerados"| RedisPubSub
+    RedisPubSub -->|"10. API Gateway Assina Tópico e emite SSE"| API
     
     %% Integração Bidirecional com Data Lake
-    Workers -->|11. Envia Telemetria (Apenas Fim da Interação)| Broker
-    Broker -->|12. Ingestão Assíncrona| Ingest
-    Ingest -->|13. Grava na Camada Raw| BQ
-    BQ -->|14. Modelação para Refined| Airflow
-    Airflow -->|15. Reverse ETL Sync Batch| FastDB
+    Workers -->|"11. Envia Telemetria (Apenas Fim da Interação)"| Broker
+    Broker -->|"12. Ingestão Assíncrona"| Ingest
+    Ingest -->|"13. Grava na Camada Raw"| BQ
+    BQ -->|"14. Modelação para Refined"| Airflow
+    Airflow -->|"15. Reverse ETL Sync Batch"| FastDB
 ```
 
 ## 3. AI Data Engineering (A Esteira do RAG)
 Para garantir respostas precisas sobre os catálogos promocionais sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados.
+
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-esteira-rag.png](diagrams/system-design-esteira-rag.png).
 
 ```mermaid
 flowchart TD
@@ -75,16 +79,16 @@ flowchart TD
         direction TB
         PDF[Catálogos em PDF] --> Parse[Intelligent Document Parsing]
         Parse --> Chunk[Chunking Estrutural]
-        Chunk --> Meta[Enriquecimento de Metadados\nTags: Ciclo, Marca, Promoção]
+        Chunk --> Meta[Enriquecimento de Metadados<br/>Tags: Ciclo, Marca, Promoção]
         Meta --> Embed[Modelo de Embedding]
         Embed --> VDB[(Vector Database)]
     end
 
     subgraph Retrieval [Fase 2: Recuperação e Inferência - Real-time]
         direction TB
-        Query[Grafo aciona o RAG] --> Search[Busca Híbrida\nFiltros de Metadados + HNSW]
+        Query[Grafo aciona o RAG] --> Search[Busca Híbrida<br/>Filtros de Metadados + HNSW]
         VDB -.-> Search
-        Search --> Rerank[Re-ranking\nCross-Encoder]
+        Search --> Rerank[Re-ranking<br/>Cross-Encoder]
         Rerank --> TopK[Top-3 Contextos Relevantes]
         TopK --> LLM[Injeção no Prompt do LLM]
     end
@@ -100,18 +104,20 @@ flowchart TD
 | **Acesso a Dados (Tools)** | Mock/API Síncrona. | **Híbrido: APIs de ERP (Tempo Real) + FastDB via Reverse ETL (Analítico).** | Garante que o estoque seja exato (sem defasagem) enquanto indicadores do ciclo vêm de um banco de leitura otimizado e separado do BigQuery (OLAP). |
 | **Memória de Sessão** | Variáveis em memória ou DB SQL padrão. | **LangGraph Checkpointer apontado para o Redis Cluster.** | Permite que qualquer Worker retome o contexto exato da revendedora (Thread ID), essencial em sistemas distribuídos. |
 | **Segurança e Guardrails** | Prompting simples (System Prompt). | **Output Guardrails (LlamaGuard/NeMo)** processando a saída antes do envio SSE. | Garante conformidade de nível enterprise, impedindo o vazamento de PII e Margens de Lucro mesmo se houver alucinação do LLM. |
-| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Envio em Batch/Pós-interação via PubSub -> Dataflow -> BigQuery.** | Enviar tokens individuais por streaming para telemetria onera infraestrutura. Agregamos os logs na conclusão do grafo. |
+| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Envio em Batch/Pós-interação via PubSub -> Dataflow -> BigQuery.** | Enviar tokens individuais por streaming para telemetria onera a infraestrutura. Os logs são agregados na conclusão do grafo. |
 
 ## 5. Mecanismos de Defesa e Otimização (FinOps)
 
 1. **Semantic Caching:** Respostas a perguntas repetitivas são cacheadas vetorialmente no Redis. Se outra revendedora perguntar algo semanticamente similar, o Gateway devolve a cache, poupando 100% da inferência.
-2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador. Reservamos modelos caros apenas para orquestrações ambíguas ou complexas.
+2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador. Modelos de maior custo são reservados apenas para orquestrações ambíguas ou complexas.
 3. **Circuit Breakers para APIs Transacionais:** Chamadas ao ERP (estoque/pedidos) possuem Circuit Breakers. Em caso de indisponibilidade, o agente devolve uma mensagem padrão, evitando o colapso dos LangGraph Workers.
 4. **Provisioned Throughput:** Substituição do modelo *Pay-as-you-go* por capacidade reservada ou clusters vLLM próprios (GCP GKE) para evitar gargalos em limites de tokens/minuto da provedora de IA.
 
 ## 6. Orquestração do Agente (Decision Models & Sub-grafos)
 
-Para suportar 500k conexões, abandonamos o loop autônomo ReAct puro (que consome muitos tokens e idas/vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
+Para suportar 500k conexões, abandona-se o loop autônomo ReAct puro (que consome muitos tokens e idas e vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
+
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-orquestracao-subgrafos.png](diagrams/system-design-orquestracao-subgrafos.png).
 
 ```mermaid
 flowchart TD
@@ -136,26 +142,7 @@ flowchart TD
     NodeLLM -.-> Synthesize
     
     Synthesize --> Guardrail{"Output Guardrail<br/>(Verifica PII / Margem)"}
-    Guardrail -->|Bloqueio| Reject["Mensagem Padrão de Recusa"]
-    Guardrail -->|Aprovado| Output["Publica Chunks no Redis Pub/Sub"]
+    Guardrail -->|"Bloqueio"| Reject["Mensagem Padrão de Recusa"]
+    Guardrail -->|"Aprovado"| Output["Publica Chunks no Redis Pub/Sub"]
     Reject --> Output
 ```
-
----
-
-## 7. Relatório de Desenvolvimento Assistido por IA (Vibe Coding)
-
-*(Esta seção detalha a estratégia de uso de IA generativa durante a construção deste case, conforme exigência do desafio).*
-
-### Ferramentas Utilizadas
-* **IDE / Assistente:** [Ex: Cursor AI / GitHub Copilot]
-* **Modelos Utilizados:** [Ex: Claude 3.5 Sonnet para arquitetura e refatoração complexa, GPT-4o para geração de dados mockados]
-* **Ferramentas Auxiliares:** [Ex: ChatGPT para revisão de diagramas Mermaid, Perplexity para pesquisa de documentação atualizada do LangGraph]
-
-### Estruturação dos Prompts Iniciais
-1. **Modelagem de Dados e Mocks:** Utilizei prompts para gerar a base sintética do RAG garantindo a diversidade das entidades. *Exemplo de prompt: "Gere um mock de catálogo em Markdown simulando produtos Boticário e Eudora do Ciclo 15, contendo sku, nome, descrição olfativa e preço promocional."*
-2. **Setup do Grafo (LangGraph):** Pedi à IA para desenhar o esqueleto do StateGraph com foco em tipagem estática (Pydantic). *Exemplo: "Crie um StateGraph usando LangGraph e FastAPI. O estado deve conter mensagens, flag de intenção e um checkpointer. Foque apenas no scaffolding."*
-
-### Desafios e Correções (Obstáculos da IA)
-* **Obstáculo Principal:** A IA frequentemente falha ao implementar o Streaming (SSE) nativo de eventos assíncronos do LangGraph (`astream_events`) direto para o FastAPI, muitas vezes sugerindo retornos síncronos que quebram o gerador, ou se perdendo na gestão das *threads* da memória.
-* **A Solução Adotada:** Tive que intervir manualmente no código gerado para ajustar o retorno do endpoint, garantindo que o `StreamingResponse` do FastAPI consumisse corretamente o iterador assíncrono do LangGraph sem fechar a conexão prematuramente. Além disso, corrigi a implementação do `AsyncSqliteSaver` (ou RedisSaver) para assegurar que a thread ID da revendedora estivesse sendo passada corretamente em cada invocação da run.

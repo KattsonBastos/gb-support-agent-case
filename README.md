@@ -19,6 +19,7 @@ Para garantir a escalabilidade técnica e a segurança operacional exigidas pelo
 
 *   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/c4-model/](docs/c4-model/).
 *   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/c4-model/03-sequencia-casos-uso.md](docs/c4-model/03-sequencia-casos-uso.md).
+*   **Galeria de Imagens dos Diagramas:** Imagens renderizadas de todos os diagramas da arquitetura para visualização direta caso o Mermaid não renderize no GitHub: [docs/diagrams/](docs/diagrams/).
 *   **ADRs (Architecture Decision Records):** As decisões críticas que moldaram este MVP estão detalhadas em [docs/adrs/](docs/adrs/). Destacam-se:
     *   [`ADR-001`](docs/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
     *   [`ADR-002`](docs/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
@@ -55,22 +56,17 @@ O projeto foi integralmente dockerizado para facilitar a execução local. Os ba
 4.  Acesse a aplicação:
     *   **Frontend (Chat da Revendedora):** `http://localhost:8501`
     *   **Backend (Swagger/Docs da API):** `http://localhost:8000/docs`
-    *   **Langfuse (Obserbabilidade):** `http://localhost:3000`
+    *   **Langfuse (Observabilidade):** `http://localhost:3000`
 
 ## 4. Relatório de Vibe Coding (Desenvolvimento Assistido por IA)
 
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;
-Abaixo segue um descritivo de como a IA foi utilizada no desenvolvimento deste projeto:
+O projeto foi desenvolvido sob a abordagem de <strong>Spec-Driven Development (SDD) assistido por IA</strong>, combinando o ambiente agentic do <strong>Google Antigravity IDE</strong> (orquestrando o modelo <strong>Gemini 3.8 Flash</strong> para implementação/scaffolding e o <strong>Claude Opus 5.5</strong> para revisão final do código e documentação) e o <strong>Gemini Chat (Modelo Pro)</strong> para discussões conceituais, decisões arquiteturais ([ADRs](docs/adrs)) e diagramação do [Modelo C4](docs/c4-model). A disciplina do SDD e a intervenção ativa <em>Human-in-the-Loop</em> — especialmente no tratamento de fluxos assíncronos de streaming SSE no LangGraph e na aplicação estrita de guardrails de PII — garantiram alta velocidade de entrega (~75% de ganho de produtividade) com robustez corporativa.
 </p>
 
-*   **Ferramentas Utilizadas:** Gemini Chat para a idealização, discussão arquitetural e de produto; Google Antigravity IDE orquestrando o modelo **Gemini 3.8 Flash** para a implementação e estruturação de boilerplate.
-*   **Estruturação de Prompts:**
-    *   **Vibe coding via prompts com o Gemini:** Discussão e criação das [ADRs](docs/adrs) e diagramas do [Modelo C4](docs/c4-model).
-    *   **Framework pessoal de Spec-Driven Development (SDD):** Para a implementação, foi utilizado o SDD com um framework lighweight pessoal (registro em [.specs](.specs)). As [skills de SDD](.agents/skills) foram versionadas apenas para fins de explicação.
-    *   **Prompts Vibe Coding:** Registro em [docs/vibe-coding-prompts](docs/vibe-coding-prompts) dos prompts usados no vibe coding via chat para atividades gerais.
-*   **O Maior Obstáculo da IA:** Durante a implementação do LangGraph, a IA teve grande dificuldade em correlacionar o gerador assíncrono do grafo (`.astream_events()`) com o formato exigido pelo `StreamingResponse` do FastAPI. O modelo insistia em devolver objetos internos de roteamento do LangChain no meio do stream SSE, quebrando a interface do usuário.
-*   **A Correção (Human-in-the-Loop):** Intervi criando um filtro heurístico na função geradora do FastAPI ([`src/api/routes.py`](src/api/routes.py)). Ajustei o loop assíncrono para inspecionar os dicionários gerados pelo evento, garantindo que o `yield` ocorresse estritamente quando a chave `"event"` fosse `on_chat_model_stream`, formatando manualmente o chunk no padrão nativo de Server-Sent Events (`data: {chunk}\n\n`).
+> O relatório técnico completo, detalhando as ferramentas, engenharia de prompts, desafios enfrentados, intervenções humanas e lições aprendidas, está disponível em:  
+> 📄 **[docs/relatorio_vibe_coding.md](docs/relatorio_vibe_coding.md)**
 
 ## 5. Visão de Evolução (System Design para 500 mil revendedoras)
 

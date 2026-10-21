@@ -1,10 +1,15 @@
 # Diagramas de Sequência: Casos de Uso Core
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
-**Propósito:** Mapear a jornada técnica dos três casos de uso principais, evidenciando as decisões de orquestração (LangGraph), as restrições de negócio (Guardrails) e a latência percebida (Streaming SSE)[cite: 1, 2].
+
+**Propósito:** Mapear a jornada técnica dos três casos de uso principais, evidenciando as decisões de orquestração (LangGraph), as restrições de negócio (Guardrails) e a latência percebida (Streaming SSE).
 
 ## 1. Caso de Uso: Consulta ao Catálogo (Fase de Pré-Venda)
+
 **Cenário:** A revendedora está interagindo com um cliente e precisa saber rapidamente detalhes de um produto ou se ele está em promoção no ciclo atual.
+
 **Desafio Técnico:** O orquestrador deve decidir não usar uma API transacional, mas sim realizar uma busca vetorial no catálogo do ciclo (fonte original em PDF, transcrita em Markdown no MVP para ingestão).
+
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-consulta-catalogo.png](../diagrams/sequencia-consulta-catalogo.png).
 
 ```mermaid
 sequenceDiagram
@@ -44,8 +49,12 @@ sequenceDiagram
 ---
 
 ## 2. Caso de Uso: Consulta Transacional (Fase de Fechamento/Pós-Venda)
+
 **Cenário:** A revendedora precisa rastrear um pedido que o cliente final está cobrando.
+
 **Desafio Técnico:** Extrair os parâmetros corretos do texto (Ex: Código do Pedido) e invocar a função Mock com injeção mandatória do CPF autenticado na sessão, sem confiar em CPFs digitados no chat.
+
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-consulta-transacional.png](../diagrams/sequencia-consulta-transacional.png).
 
 ```mermaid
 sequenceDiagram
@@ -95,8 +104,12 @@ sequenceDiagram
 ---
 
 ## 3. Caso de Uso: Disparo de Guardrail (Proteção de Margem/PII)
+
 **Cenário:** A revendedora tenta utilizar o assistente de forma indevida, perguntando informações sigilosas sobre outras consultoras ou tentando calcular margens de lucro indevidas.
+
 **Desafio Técnico:** O sistema deve abortar a execução de Tools e retornar uma negativa imediata e educada, conforme a exigência estrita do case.
+
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-guardrail-pii.png](../diagrams/sequencia-guardrail-pii.png).
 
 ```mermaid
 sequenceDiagram
@@ -129,4 +142,4 @@ sequenceDiagram
     end
     UX-->>R: Exibe: "Informações comerciais e margens de lucro de outras revendedoras são confidenciais..."
 ```
-**Explicação da Decisão:** Este diagrama ilustra o padrão de Defesa em Profundidade. Mostra para os avaliadores que você não gastou latência e dinheiro (FinOps) chamando o banco de dados desnecessariamente. A requisição maliciosa ou fora de escopo morre rapidamente na camada cognitiva do LangGraph.
+**Explicação da Decisão:** Este diagrama ilustra o padrão de Defesa em Profundidade, demonstrando que não há desperdício de latência nem de custos (FinOps) com chamadas desnecessárias ao banco de dados. A requisição maliciosa ou fora de escopo é encerrada precocemente na camada cognitiva do LangGraph.

@@ -1,15 +1,15 @@
 # API, Streaming & Integração
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
 **Arquivo:** `.specs/RFC-003-api-e-streaming/spec.md`
-**Propósito:** Definir os contratos de entrada/saída do FastAPI e detalhar o comportamento do Server-Sent Events (SSE) acoplado ao LangGraph[cite: 1, 2].
+**Propósito:** Definir os contratos de entrada/saída do FastAPI e detalhar o comportamento do Server-Sent Events (SSE) acoplado ao LangGraph.
 
 ## 1. Stack Tecnológica e Endpoints
-*   **Framework:** FastAPI[cite: 1].
+*   **Framework:** FastAPI.
 *   **Servidor ASGI:** Uvicorn.
 *   **Endpoint de Chat:** `POST /api/v1/chat/stream`
 
 ## 2. Contratos de Dados (Pydantic Schemas)
-A validação de entrada deve garantir o isolamento da sessão exigido pelo negócio[cite: 1].
+A validação de entrada deve garantir o isolamento da sessão exigido pelo negócio.
 
 ```python
 class ChatRequest(BaseModel):
@@ -19,9 +19,9 @@ class ChatRequest(BaseModel):
 ```
 
 ## 3. Comportamento do Streaming (SSE)
-Para garantir percepção de baixa latência ao usuário final[cite: 2], a resposta da API não deve aguardar a geração completa do texto.
+Para garantir percepção de baixa latência ao usuário final, a resposta da API não deve aguardar a geração completa do texto.
 
-*   **Padrão de Resposta:** `StreamingResponse` do FastAPI com `media_type="text/event-stream"`[cite: 2].
+*   **Padrão de Resposta:** `StreamingResponse` do FastAPI com `media_type="text/event-stream"`.
 *   **Formato do Chunk:** Cada pedaço de texto extraído do LLM deve ser formatado estritamente no padrão SSE.
     ```text
     data: {"chunk": "Olá"}

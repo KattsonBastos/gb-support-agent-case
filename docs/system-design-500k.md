@@ -140,22 +140,3 @@ flowchart TD
     Guardrail -->|"Aprovado"| Output["Publica Chunks no Redis Pub/Sub"]
     Reject --> Output
 ```
-
----
-
-## 7. Relatório de Desenvolvimento Assistido por IA (Vibe Coding)
-
-*(Esta seção detalha a estratégia de uso de IA generativa durante a construção deste case, conforme exigência do desafio).*
-
-### Ferramentas Utilizadas
-* **IDE / Assistente:** [Ex: Cursor AI / GitHub Copilot]
-* **Modelos Utilizados:** [Ex: Claude 3.5 Sonnet para arquitetura e refatoração complexa, GPT-4o para geração de dados mockados]
-* **Ferramentas Auxiliares:** [Ex: ChatGPT para revisão de diagramas Mermaid, Perplexity para pesquisa de documentação atualizada do LangGraph]
-
-### Estruturação dos Prompts Iniciais
-1. **Modelagem de Dados e Mocks:** Utilizei prompts para gerar a base sintética do RAG garantindo a diversidade das entidades. *Exemplo de prompt: "Gere um mock de catálogo em Markdown simulando produtos Boticário e Eudora do Ciclo 15, contendo sku, nome, descrição olfativa e preço promocional."*
-2. **Setup do Grafo (LangGraph):** Pedi à IA para desenhar o esqueleto do StateGraph com foco em tipagem estática (Pydantic). *Exemplo: "Crie um StateGraph usando LangGraph e FastAPI. O estado deve conter mensagens, flag de intenção e um checkpointer. Foque apenas no scaffolding."*
-
-### Desafios e Correções (Obstáculos da IA)
-* **Obstáculo Principal:** A IA frequentemente falha ao implementar o Streaming (SSE) nativo de eventos assíncronos do LangGraph (`astream_events`) direto para o FastAPI, muitas vezes sugerindo retornos síncronos que quebram o gerador, ou se perdendo na gestão das *threads* da memória.
-* **A Solução Adotada:** Tive que intervir manualmente no código gerado para ajustar o retorno do endpoint, garantindo que o `StreamingResponse` do FastAPI consumisse corretamente o iterador assíncrono do LangGraph sem fechar a conexão prematuramente. Além disso, corrigi a implementação do `AsyncSqliteSaver` (ou RedisSaver) para assegurar que a thread ID da revendedora estivesse sendo passada corretamente em cada invocação da run.

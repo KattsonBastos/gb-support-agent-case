@@ -12,6 +12,8 @@ O **Motor Transacional (Agente)** atua como um assistente virtual conversacional
 C4Context
     title Diagrama de Contexto (Nível 1) - Plataforma Agentes GB
 
+    UpdateLayoutConfig($c4ShapeInRow="1", $c4BoundaryInRow="1")
+
     Person(revendedora, "Revendedora Boticário", "Interage com o assistente virtual para resolver dúvidas no ciclo de vendas.")
     
     System(motor_ia, "Motor Transacional (Agente)", "Compreende a intenção da revendedora e decide a melhor forma de ajudá-la.")

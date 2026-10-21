@@ -75,16 +75,16 @@ flowchart TD
         direction TB
         PDF[Catálogos em PDF] --> Parse[Intelligent Document Parsing]
         Parse --> Chunk[Chunking Estrutural]
-        Chunk --> Meta[Enriquecimento de Metadados\nTags: Ciclo, Marca, Promoção]
+        Chunk --> Meta[Enriquecimento de Metadados<br/>Tags: Ciclo, Marca, Promoção]
         Meta --> Embed[Modelo de Embedding]
         Embed --> VDB[(Vector Database)]
     end
 
     subgraph Retrieval [Fase 2: Recuperação e Inferência - Real-time]
         direction TB
-        Query[Grafo aciona o RAG] --> Search[Busca Híbrida\nFiltros de Metadados + HNSW]
+        Query[Grafo aciona o RAG] --> Search[Busca Híbrida<br/>Filtros de Metadados + HNSW]
         VDB -.-> Search
-        Search --> Rerank[Re-ranking\nCross-Encoder]
+        Search --> Rerank[Re-ranking<br/>Cross-Encoder]
         Rerank --> TopK[Top-3 Contextos Relevantes]
         TopK --> LLM[Injeção no Prompt do LLM]
     end
@@ -136,8 +136,8 @@ flowchart TD
     NodeLLM -.-> Synthesize
     
     Synthesize --> Guardrail{"Output Guardrail<br/>(Verifica PII / Margem)"}
-    Guardrail -->|Bloqueio| Reject["Mensagem Padrão de Recusa"]
-    Guardrail -->|Aprovado| Output["Publica Chunks no Redis Pub/Sub"]
+    Guardrail -->|"Bloqueio"| Reject["Mensagem Padrão de Recusa"]
+    Guardrail -->|"Aprovado"| Output["Publica Chunks no Redis Pub/Sub"]
     Reject --> Output
 ```
 

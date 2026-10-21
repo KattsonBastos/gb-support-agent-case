@@ -1,4 +1,23 @@
-# Motor Transacional: Agente de Suporte à Revendedora (GB)
+<div align="center">
+
+  <h1 align="center">🌸 Agente de Suporte à Revendedora GB</h1>
+
+  <p align="center">
+    Orquestrador agêntico em <b>LangGraph & FastAPI</b> com recuperação semântica de catálogos, <i>Function Calling</i> com <b>Zero Vazamento de PII</b> e arquitetura escalável para 500k conexões.
+  </p>
+
+  <p align="center">
+    <img src="https://img.shields.io/badge/LangGraph-StateGraph-1C3C3C?logo=langchain&logoColor=white" alt="LangGraph" />
+    <img src="https://img.shields.io/badge/FastAPI-SSE%20Streaming-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/Google%20Gemini-gemini--2.5--flash-8E75C2?logo=googlegemini&logoColor=white" alt="Google Gemini" />
+    <img src="https://img.shields.io/badge/Redis%208-Checkpointer-DC382D?logo=redis&logoColor=white" alt="Redis" />
+    <img src="https://img.shields.io/badge/ChromaDB-RAG%20Local-FFA116" alt="ChromaDB" />
+    <img src="https://img.shields.io/badge/Security-Zero%20PII%20Leak-2ea44f" alt="Zero PII Leak" />
+    <img src="https://img.shields.io/badge/Docker%20Compose-Ready-2496ED?logo=docker&logoColor=white" alt="Docker" />
+  </p>
+
+</div>
+
 
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;

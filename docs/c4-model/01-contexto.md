@@ -12,18 +12,22 @@ O **Motor Transacional (Agente)** atua como um assistente virtual conversacional
 C4Context
     title Diagrama de Contexto (Nível 1) - Plataforma Agentes GB
 
-    UpdateLayoutConfig($c4ShapeInRow="1", $c4BoundaryInRow="1")
+    %% Permite até 2 elementos lado a lado na mesma linha
+    UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="1")
 
     Person(revendedora, "Revendedora Boticário", "Interage com o assistente virtual para resolver dúvidas no ciclo de vendas.")
     
     System(motor_ia, "Motor Transacional (Agente)", "Compreende a intenção da revendedora e decide a melhor forma de ajudá-la.")
     
-    System_Ext(sis_pedidos, "Sistemas Transacionais (DB/API)", "Fonte de verdade sobre o status de pedidos.")
     System_Ext(sis_catalogo, "Repositório de Catálogos", "Catálogo em PDF e promoções ativas do ciclo.")
+    System_Ext(sis_pedidos, "Sistemas Transacionais (DB/API)", "Fonte de verdade sobre o status de pedidos.")
 
-    Rel(revendedora, motor_ia, "Faz perguntas sobre produtos,<br>promoções ou pedidos via", "Chat (WhatsApp/App)")
-    Rel(motor_ia, sis_catalogo, "Busca informações técnicas<br>e promoções do ciclo via", "RAG")
-    Rel(motor_ia, sis_pedidos, "Consulta de forma autônoma<br>informações da conta via", "Ferramentas (Tools)")
+    %% Ajustado para Rel_R (Right) para criar o espaço horizontal corretamente
+    Rel_R(revendedora, motor_ia, "Faz perguntas sobre produtos,<br>promoções ou pedidos via", "Chat (WhatsApp/App)")
+    
+    %% Ajustado para Rel_D (Down) para que fiquem paralelos abaixo do motor
+    Rel_D(motor_ia, sis_catalogo, "Busca informações técnicas<br>e promoções do ciclo via", "RAG")
+    Rel_D(motor_ia, sis_pedidos, "Consulta de forma autônoma<br>informações da conta via", "Ferramentas (Tools)")
 ```
 
 ## Atores e Sistemas

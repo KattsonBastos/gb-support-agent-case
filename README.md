@@ -76,9 +76,12 @@ Abaixo segue um descritivo de como a IA foi utilizada no desenvolvimento deste p
 
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;
-Para escalar este MVP para 500 mil acessos simultâneos e integrar ao BigLake/BigQuery corporativo:
+A estratégia de transição do MVP para a escala de 500.000 revendedoras simultâneas migra a arquitetura de um modelo síncrono para uma abordagem <strong>Event-Driven desacoplada</strong>, combinando otimização de custos (FinOps) e integração bidirecional com o Data Lake corporativo (BigQuery).
 </p>
 
-*   **Desacoplamento:** O FastAPI passará a atuar estritamente como um API Gateway (gestão de conexões longas de SSE), delegando as execuções do LangGraph via fila (ex: Apache Kafka/PubSub) para workers assíncronos.
-*   **Estado:** O checkpointer em memória será substituído por um cluster **Redis**, permitindo latência de milissegundos no resgate das threads. Implementaremos "Sliding Window Summarization" para baratear custos de contexto no LLM longo.
-*   **Data Lake:** Um CronJob consumirá eventos sumarizados do LangFuse e dados consolidados das interações e enviará os *logs* analíticos diretamente para o BigQuery, municiando a equipe de negócio sem penalizar a API transacional principal.
+*   **Arquitetura Desacoplada (Event-Driven):** O FastAPI Edge gerencia exclusivamente as conexões SSE via Redis Pub/Sub, delegando o processamento pesado do LangGraph para workers assíncronos no Kubernetes via Kafka/PubSub.
+*   **Estratégia Híbrida de Dados & BigQuery:** Consultas em tempo real ao ERP (estoque e pedidos) combinadas a leituras de baixa latência em FastDB (alimentado via *Reverse ETL* do BigQuery). Telemetria analítica enviada em batch assíncrono pós-interação via Dataflow.
+*   **FinOps & Sub-grafos Especializados:** Substituição do loop ReAct puro por sub-grafos acionados por modelos de decisão na borda, com *Semantic Caching* no Redis e *Output Guardrails* dedicados (mitigando vazamentos de PII e margem).
+
+> O detalhamento completo da arquitetura TO-BE, esteira de AI Data Engineering (RAG), matriz de evolução (AS-IS vs TO-BE) e diagramas Mermaid estão disponíveis em:  
+> 📄 **[docs/system-design-500k.md](docs/system-design-500k.md)**

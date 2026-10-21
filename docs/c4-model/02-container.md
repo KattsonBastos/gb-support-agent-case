@@ -8,6 +8,8 @@ A arquitetura do motor é estruturada em torno de um orquestrador agêntico base
 
 ## Diagrama
 
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/c4-container.png](../diagrams/c4-container.png).
+
 ```mermaid
 C4Container
     title Diagrama de Container (Nível 2) - Arquitetura do Motor Transacional

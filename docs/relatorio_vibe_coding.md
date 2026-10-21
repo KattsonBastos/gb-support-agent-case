@@ -12,6 +12,8 @@ Para construir a aplicação de forma rápida, mas sem perder o controle da qual
 
 Para melhor visualização, o fluxo de trabalho funcionou da seguinte forma: 
 
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/vibe-coding-fluxo-desenvolvimento.png](diagrams/vibe-coding-fluxo-desenvolvimento.png).
+
 ```mermaid
 flowchart LR
     Constitution["Constituição & Guardrails<br/>(Regras Inegociáveis)"] --> ADRs["Decisões Arquiteturais<br/>(ADRs 001 a 005)"]
@@ -25,10 +27,11 @@ flowchart LR
 
 O ecossistema de ferramentas foi estruturado combinando modelos especializados para ideação, implementação e revisão técnica:
 
-* **Gemini Chat (Modelo Pro):** Utilizado para análise de requisitos de negócio, ideação, elaboração inicial dos documentos arquiteturais ([ADRs](adrs) e [Modelo C4](c4-model)) e discussões estratégicas a nível de produto.
+* **Gemini Chat (Modelo Pro):** Utilizado para análise de requisitos de negócio, ideação, elaboração inicial dos documentos arquiteturais ([ADRs](adrs) e [Modelo C4](c4-model)) e discussões estratégicas a nível de produto. A ideia foi simular uma discussão técnica e produto e, com base nos insumos levantados, formalizar em documentos para refinamento posterior.
+
 * **Google Antigravity IDE (Ambiente de Desenvolvimento Agentic):**
-  * **Gemini 3.8 Flash:** Modelo orquestrado diretamente na IDE para implementação técnica, geração de código e boilerplate, e execução do *Spec-Driven Development (SDD)* guiado por skills.
-  * **Claude Opus 5.5:** Modelo de alta capacidade de raciocínio utilizado para a revisão final crítica do código-fonte, validação de segurança e refinamento da documentação técnica.
+  * **Gemini 3.8 Flash:** Modelo orquestrado diretamente na IDE para implementação técnica, geração de código e boilerplate, e execução do *Spec-Driven Development (SDD)*. Dado que os requisitos iniciais do produto estavam bem mapeados e decisões arquiteturais bem definidas, a escolha de um modelo menor se mostrou eficiente, entregando velocidade e precisão, mantendo um consumo menor de tokens.
+  * **Claude Opus 5.5:** Modelo de alta capacidade de raciocínio utilizado para a revisão final crítica do código-fonte, validação de segurança e refinamento da documentação técnica e a conformidade do que foi implementado com os requisitos e decisões iniciais.
 
 ## **3. Regras Inegociáveis (Guardrails)**
 

@@ -13,6 +13,8 @@ A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-D
 
 ## 2. Diagrama Arquitetural TO-BE (Cloud Architecture)
 
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-cloud-architecture.png](diagrams/system-design-cloud-architecture.png).
+
 ```mermaid
 flowchart TD
     %% Nós de Borda e Orquestração
@@ -69,6 +71,8 @@ flowchart TD
 ## 3. AI Data Engineering (A Esteira do RAG)
 Para garantir respostas precisas sobre os catálogos promocionais sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados.
 
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-esteira-rag.png](diagrams/system-design-esteira-rag.png).
+
 ```mermaid
 flowchart TD
     subgraph Ingestion [Fase 1: Ingestão de Dados do Catálogo - Offline/Batch]
@@ -112,6 +116,8 @@ flowchart TD
 ## 6. Orquestração do Agente (Decision Models & Sub-grafos)
 
 Para suportar 500k conexões, abandona-se o loop autônomo ReAct puro (que consome muitos tokens e idas e vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
+
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-orquestracao-subgrafos.png](diagrams/system-design-orquestracao-subgrafos.png).
 
 ```mermaid
 flowchart TD

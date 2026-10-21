@@ -1,6 +1,7 @@
 # ADR-002: Padrão de Comunicação de Baixa Latência (Streaming)
 
 **Data:** 17/10/2026
+
 **Status:** Aceito
 
 ## Contexto

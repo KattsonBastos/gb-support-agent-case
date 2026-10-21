@@ -100,18 +100,18 @@ flowchart TD
 | **Acesso a Dados (Tools)** | Mock/API Síncrona. | **Híbrido: APIs de ERP (Tempo Real) + FastDB via Reverse ETL (Analítico).** | Garante que o estoque seja exato (sem defasagem) enquanto indicadores do ciclo vêm de um banco de leitura otimizado e separado do BigQuery (OLAP). |
 | **Memória de Sessão** | Variáveis em memória ou DB SQL padrão. | **LangGraph Checkpointer apontado para o Redis Cluster.** | Permite que qualquer Worker retome o contexto exato da revendedora (Thread ID), essencial em sistemas distribuídos. |
 | **Segurança e Guardrails** | Prompting simples (System Prompt). | **Output Guardrails (LlamaGuard/NeMo)** processando a saída antes do envio SSE. | Garante conformidade de nível enterprise, impedindo o vazamento de PII e Margens de Lucro mesmo se houver alucinação do LLM. |
-| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Envio em Batch/Pós-interação via PubSub -> Dataflow -> BigQuery.** | Enviar tokens individuais por streaming para telemetria onera infraestrutura. Agregamos os logs na conclusão do grafo. |
+| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Envio em Batch/Pós-interação via PubSub -> Dataflow -> BigQuery.** | Enviar tokens individuais por streaming para telemetria onera a infraestrutura. Os logs são agregados na conclusão do grafo. |
 
 ## 5. Mecanismos de Defesa e Otimização (FinOps)
 
 1. **Semantic Caching:** Respostas a perguntas repetitivas são cacheadas vetorialmente no Redis. Se outra revendedora perguntar algo semanticamente similar, o Gateway devolve a cache, poupando 100% da inferência.
-2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador. Reservamos modelos caros apenas para orquestrações ambíguas ou complexas.
+2. **Model Cascading (Roteamento Semântico):** Um classificador ultraleve atua na borda antes de invocar o LLM Orquestrador. Modelos de maior custo são reservados apenas para orquestrações ambíguas ou complexas.
 3. **Circuit Breakers para APIs Transacionais:** Chamadas ao ERP (estoque/pedidos) possuem Circuit Breakers. Em caso de indisponibilidade, o agente devolve uma mensagem padrão, evitando o colapso dos LangGraph Workers.
 4. **Provisioned Throughput:** Substituição do modelo *Pay-as-you-go* por capacidade reservada ou clusters vLLM próprios (GCP GKE) para evitar gargalos em limites de tokens/minuto da provedora de IA.
 
 ## 6. Orquestração do Agente (Decision Models & Sub-grafos)
 
-Para suportar 500k conexões, abandonamos o loop autônomo ReAct puro (que consome muitos tokens e idas/vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
+Para suportar 500k conexões, abandona-se o loop autônomo ReAct puro (que consome muitos tokens e idas e vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
 
 ```mermaid
 flowchart TD

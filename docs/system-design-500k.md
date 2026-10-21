@@ -36,34 +36,34 @@ flowchart TD
     Airflow["Pipelines de Dados<br/>Airflow / dbt"]
 
     %% Fluxos de Interação
-    R <-->|Streaming SSE Long-polling| LB
+    R <-->|"Streaming SSE Long-polling"| LB
     LB <--> API
     
     %% Roteamento na Borda
-    API -->|1. Verifica Semantic Cache| RedisCache
-    RedisCache -.->|Cache Hit - Resposta Imediata| API
+    API -->|"1. Verifica Semantic Cache"| RedisCache
+    RedisCache -.->|"Cache Hit - Resposta Imediata"| API
     
     %% Fluxo Assíncrono
-    API -->|2. Cache Miss: Classifica Intenção| Router
-    Router -->|3. Envia Tarefa Roteada| Broker
-    Broker -->|4. Consome Tarefa| Workers
-    Workers <-->|5. Restaura/Salva Thread (Checkpointer)| RedisCache
+    API -->|"2. Cache Miss: Classifica Intenção"| Router
+    Router -->|"3. Envia Tarefa Roteada"| Broker
+    Broker -->|"4. Consome Tarefa"| Workers
+    Workers <-->|"5. Restaura/Salva Thread (Checkpointer)"| RedisCache
     
     %% Raciocínio e Tools
-    Workers <-->|6. Busca Hibrida RAG| RAG
-    Workers <-->|7. Consulta Tempo Real (Estoque/Status)| ERP
-    Workers <-->|8. Consulta Rápida (Perfil/Indicadores)| FastDB
+    Workers <-->|"6. Busca Hibrida RAG"| RAG
+    Workers <-->|"7. Consulta Tempo Real (Estoque/Status)"| ERP
+    Workers <-->|"8. Consulta Rápida (Perfil/Indicadores)"| FastDB
     
     %% Devolução Desacoplada (SSE)
-    Workers -->|9. Publica Tokens Gerados| RedisPubSub
-    RedisPubSub -->|10. API Gateway Assina Tópico e emite SSE| API
+    Workers -->|"9. Publica Tokens Gerados"| RedisPubSub
+    RedisPubSub -->|"10. API Gateway Assina Tópico e emite SSE"| API
     
     %% Integração Bidirecional com Data Lake
-    Workers -->|11. Envia Telemetria (Apenas Fim da Interação)| Broker
-    Broker -->|12. Ingestão Assíncrona| Ingest
-    Ingest -->|13. Grava na Camada Raw| BQ
-    BQ -->|14. Modelação para Refined| Airflow
-    Airflow -->|15. Reverse ETL Sync Batch| FastDB
+    Workers -->|"11. Envia Telemetria (Apenas Fim da Interação)"| Broker
+    Broker -->|"12. Ingestão Assíncrona"| Ingest
+    Ingest -->|"13. Grava na Camada Raw"| BQ
+    BQ -->|"14. Modelação para Refined"| Airflow
+    Airflow -->|"15. Reverse ETL Sync Batch"| FastDB
 ```
 
 ## 3. AI Data Engineering (A Esteira do RAG)

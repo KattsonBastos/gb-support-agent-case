@@ -11,6 +11,18 @@ A transição do MVP para a escala de 500 mil acessos exige o abandono de uma ar
 
 A arquitetura alvo (TO-BE) baseia-se no **desacoplamento via mensageria (Event-Driven)**, onde a gestão da conectividade da revendedora é separada fisicamente do processamento pesado do LangGraph. Adicionalmente, introduz-se uma estratégia híbrida de dados: integrações de tempo real para dados transacionais (estoque/pedidos) e uma camada de *Reverse ETL* para consumo de indicadores analíticos em baixa latência, combinadas com regras de FinOps e *Semantic Routing* para mitigar custos com o LLM.
 
+### 1.1. Requisitos Arquiteturais
+Para balizar as decisões de design, a arquitetura obedece aos seguintes requisitos core:
+
+*   **Requisitos Funcionais:**
+    *   Compreender intenções e rotear dinamicamente entre RAG (catálogos) e Tools/APIs (pedidos).
+    *   Manter histórico de contexto longo e isolado por sessão/revendedora.
+    *   Consultar bases transacionais e analíticas para apoiar o ciclo de vendas.
+*   **Requisitos Não Funcionais:**
+    *   **Escalabilidade:** Suportar picos de até 500.000 conexões simultâneas (WhatsApp/App).
+    *   **Latência:** Time-to-First-Token (TTFT) inferior a 2 segundos (p95).
+    *   **Segurança e Conformidade:** Bloqueio estrito de vazamento de PII (LGPD) e dados sensíveis (margens de lucro de terceiros).
+
 ## 2. Diagrama Arquitetural TO-BE (Cloud Architecture)
 
 > 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-cloud-architecture.png](diagrams/system-design-cloud-architecture.png).
@@ -147,11 +159,23 @@ flowchart TD
     Reject --> Output
 ```
 
+## 7. Considerações Arquiteturais e Resiliência
 
-## 7. Premissas e Limites de Escopo (Assumptions)
+Para operar em território nacional via WhatsApp, a arquitetura incorpora padrões de resiliência e segurança de nível enterprise:
+
+1. **Autenticação e Identidade (WhatsApp):** O número de telefone (MSISDN) atua como identidade primária. O API Gateway/Webhook realiza um lookup em cache (Redis) do MSISDN contra a base de revendedoras ativas. Após validação, a sessão é atrelada a um `thread_id` seguro no LangGraph, garantindo isolamento total de contexto e impedindo acesso cruzado a dados de terceiros.
+
+2. **Idempotência (Proteção contra Retries):** Redes móveis oscilantes forçam o WhatsApp a reenviar webhooks se não receberem um HTTP 200 rápido. O sistema utiliza o ID único da mensagem como chave de idempotência no Redis. O *Router* verifica essa chave antes de publicar no *Broker*; duplicatas são descartadas silenciosamente, evitando processamento repetido e queima desnecessária de tokens LLM.
+
+3. **Disponibilidade e SLAs:** Para suportar a escala do Brasil inteiro, os clusters Kubernetes (HPA), Kafka e Redis são distribuídos em múltiplas zonas de disponibilidade (Multi-Zone Deployments). Aplica-se o padrão de *Graceful Degradation*: caso o Vector DB (Pinecone) fique temporariamente indisponível, o agente responde de forma amigável sobre a indisponibilidade, sem expor erros técnicos à revendedora.
+
+4. **Trade-offs Arquiteturais:**
+    * **Complexidade vs. Escala:** A transição de um FastAPI síncrono para *Workers* desacoplados consumindo Kafka permite a escala para 500k acessos, mas introduz complexidade operacional (monitoramento de lag de fila, tracing distribuído e gestão de falhas assíncronas).
+    * **Custo vs. Frescor de Dados:** Consultar o ERP em tempo real para status de pedidos garante máxima precisão, mas pode sobrecarregar sistemas legados. O trade-off adotado foi separar a leitura: dados analíticos (indicadores do ciclo) são servidos por um banco rápido (FastDB) alimentado via *Reverse ETL*, poupando o ERP e reduzindo latência.
+
+## 8. Premissas e Limites de Escopo (Assumptions)
 
 Para manter o foco do design arquitetural nos componentes core de orquestração de IA e mensageria distribuída, algumas capacidades enterprise foram abstraídas sob a premissa de que a corporação já as possui nativamente em seu ecossistema centralizado e mantido por times de Plataforma:
 
 1. **AI Gateway & Model Router:** Não se detalhou a inclusão de um AI Gateway (ex: LiteLLM, Kong AI) para fazer o roteamento e gerenciamento de modelos. Assume-se que a Plataforma de Agentes da empresa já provê essa infraestrutura para gerenciar chaves, *fallbacks*, versionamento e load balancing entre os provedores de LLM.
-
 2. **Controle de Token Budget & Rate Limiting:** A gestão financeira granular de cota por squad (Token Budgeting) e as estratégias de *rate limit* (ex: algoritmos de *Leaky Bucket* ou *Token Bucket* para inferência) não foram modeladas diretamente nesta arquitetura de aplicação, assumindo-se que essas regras de governança e *throttling* já são aplicadas no perímetro do AI Gateway corporativo existente.

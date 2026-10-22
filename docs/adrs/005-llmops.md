@@ -1,8 +1,7 @@
 # ADR-005: LLMOps e Observabilidade de Execução
 
-**Data:** 17/10/2026
-
-**Status:** Aceito
+- **Data:** 17/10/2026
+- **Status:** Aceito
 
 ## Contexto
 Em sistemas baseados em agentes e Tools, é impossível depurar alucinações apenas com logs tradicionais de texto. É necessário demonstrar tracing das etapas do LangGraph, medindo latência das Tools e consumo de tokens para viabilizar operações escaláveis.

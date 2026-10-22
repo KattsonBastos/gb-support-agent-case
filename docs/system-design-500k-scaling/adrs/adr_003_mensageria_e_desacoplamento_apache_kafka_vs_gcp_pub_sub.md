@@ -1,9 +1,9 @@
 # ADR 003: Mensageria e Desacoplamento - Apache Kafka vs. Google Cloud Pub/Sub
 
 ## 1. Título e Contexto
-**Data:** 22 de Outubro de 2026
-**Status:** Aceito
-**Domínio:** Integração / Mensageria
+- **Data:** 22 de Outubro de 2026
+- **Status:** Aceito
+- **Domínio:** Integração / Mensageria
 
 A transição da Plataforma Agentes GB para suportar 500.000 revendedoras simultâneas baseia-se em um modelo *Event-Driven*. O tráfego de entrada (Webhooks do WhatsApp) é validado na borda e depositado em um *Message Broker*. Os *LangGraph Workers* consomem essas mensagens de forma assíncrona. Além disso, a arquitetura prevê que os eventos de telemetria e o fim das interações sejam enviados para o Data Lake (BigQuery) via mensageria (Streaming Ingestion).
 

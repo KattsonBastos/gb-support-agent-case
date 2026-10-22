@@ -1,9 +1,9 @@
 # ADR 001: Padrão de Orquestração - Multi-Agent (ReAct) vs. Semantic Routing com Subgrafos
 
 ## 1. Título e Contexto
-**Data:** 22 de Outubro de 2026
-**Status:** Aceito
-**Domínio:** Orquestração de IA / AI Engineering
+- **Data:** 22 de Outubro de 2026
+- **Status:** Aceito
+- **Domínio:** Orquestração de IA / AI Engineering
 
 Para escalar a plataforma Agentes GB a 500.000 revendedoras simultâneas, precisamos definir o padrão central de orquestração do LLM. O MVP utilizava um agente autônomo baseado no padrão ReAct (Reasoning and Acting), onde um único LLM "pensava" de forma iterativa sobre qual ferramenta chamar. Em escala massiva, loops autônomos geram alto consumo de tokens (FinOps), latência imprevisível (múltiplas idas e vindas de rede) e risco de alucinações ao acessar APIs transacionais críticas (ERP/OMS). O desafio é garantir a precisão nas respostas de catálogo (RAG) e a exatidão nas ferramentas de pedidos, com o menor *Time-to-First-Token* (TTFT) e custo financeiro possíveis.
 

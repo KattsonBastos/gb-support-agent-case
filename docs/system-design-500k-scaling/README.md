@@ -185,3 +185,11 @@ Para manter o foco do design arquitetural nos componentes core de orquestração
 
 1. **AI Gateway & Model Router:** Não se detalhou a inclusão de um AI Gateway (ex: LiteLLM, Kong AI) para fazer o roteamento e gerenciamento de modelos. Assume-se que a Plataforma de Agentes da empresa já provê essa infraestrutura para gerenciar chaves, *fallbacks*, versionamento e load balancing entre os provedores de LLM.
 2. **Controle de Token Budget & Rate Limiting:** A gestão financeira granular de cota por squad (Token Budgeting) e as estratégias de *rate limit* (ex: algoritmos de *Leaky Bucket* ou *Token Bucket* para inferência) não foram modeladas diretamente nesta arquitetura de aplicação, assumindo-se que essas regras de governança e *throttling* já são aplicadas no perímetro do AI Gateway corporativo existente.
+
+## 9. Decisões Arquiteturais de Escala (ADRs)
+
+Para aprofundar os trade-offs e justificativas técnicas detalhadas de cada pilar desta arquitetura, consulte os registros de decisão em [`adrs/`](./adrs/):
+
+* **[`ADR-001`](./adrs/adr_001_padrao_orquestracao_multi_agent_vs_subgrafos.md):** Padrão de Orquestração — Multi-Agent (ReAct) vs. Semantic Routing com Subgrafos.
+* **[`ADR-002`](./adrs/adr_002_infraestrutura_de_processamento_kubernetes_vs_serverless.md):** Infraestrutura de Processamento — Kubernetes (GKE) + KEDA vs. Serverless (Cloud Run).
+* **[`ADR-003`](./adrs/adr_003_mensageria_e_desacoplamento_apache_kafka_vs_gcp_pub_sub.md):** Mensageria e Desacoplamento — Apache Kafka vs. Google Cloud Pub/Sub.

@@ -1,8 +1,7 @@
 # ADR-002: Padrão de Comunicação de Baixa Latência (Streaming)
 
-**Data:** 17/10/2026
-
-**Status:** Aceito
+- **Data:** 17/10/2026
+- **Status:** Aceito
 
 ## Contexto
 A experiência da revendedora no chat depende de percepção de baixa latência. Esperar que o LLM processe toda a resposta, após consultar o RAG e as Tools, gera bloqueios indesejados e prejudica a UX, tornando essencial o retorno progressivo da resposta.

@@ -1,9 +1,9 @@
 # ADR 002: Infraestrutura de Processamento - Kubernetes (GKE) + KEDA vs. Serverless (Cloud Run)
 
 ## 1. Título e Contexto
-**Data:** 22 de Outubro de 2026
-**Status:** Aceito
-**Domínio:** Infraestrutura / Compute
+- **Data:** 22 de Outubro de 2026
+- **Status:** Aceito
+- **Domínio:** Infraestrutura / Compute
 
 Para suportar o tráfego de até 500.000 revendedoras simultâneas, a arquitetura TO-BE da Plataforma Agentes GB adotou um padrão *Event-Driven* e assíncrono. O tráfego de rede (SSE/Webhooks) é gerenciado na borda pelo API Gateway, enquanto o processamento cognitivo (orquestração do LLM) foi delegado a *LangGraph Workers* que operam em *background*, consumindo tarefas de um *Message Broker* (Kafka ou Pub/Sub) e publicando tokens no Redis Pub/Sub.
 

@@ -1,8 +1,7 @@
 # ADR-004: Estratégia de Ingestão e Chunking para RAG
 
-**Data:** 17/10/2026
-
-**Status:** Aceito
+- **Data:** 17/10/2026
+- **Status:** Aceito
 
 ## Contexto
 O assistente precisa responder a dúvidas sobre os produtos em promoção no ciclo atual, consumindo uma base sintética que simula um catálogo em PDF. A estratégia de divisão desse texto (chunking) impacta diretamente a precisão da resposta vetorial.

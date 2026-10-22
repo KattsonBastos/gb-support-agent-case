@@ -28,9 +28,9 @@ Este diretório contém as imagens pré-renderizadas de todos os diagramas Merma
 ### 3. System Design para 500k Conexões Simultâneas
 | Diagrama | Arquivo de Imagem | Documento de Origem | Descrição |
 | :--- | :--- | :--- | :--- |
-| **Cloud Architecture (TO-BE)** | [`system-design-cloud-architecture.png`](system-design-cloud-architecture.png) | [system-design-500k.md](../system-design-500k.md) | Topologia Event-Driven (Multi-Zone Ingress, Webhooks WhatsApp, Idempotência/Auth no Redis, Tracing Distribuído LangFuse/DataDog, Kafka e BigQuery). |
-| **Esteira de AI Data Engineering (RAG)** | [`system-design-esteira-rag.png`](system-design-esteira-rag.png) | [system-design-500k.md](../system-design-500k.md) | Pipeline de ingestão batch de PDFs e recuperação híbrida em tempo real com re-ranking. |
-| **Orquestração por Sub-grafos** | [`system-design-orquestracao-subgrafos.png`](system-design-orquestracao-subgrafos.png) | [system-design-500k.md](../system-design-500k.md) | Roteamento determinístico por modelos de decisão na borda (FinOps & Menor Latência). |
+| **Cloud Architecture (TO-BE)** | [`system-design-cloud-architecture.png`](system-design-cloud-architecture.png) | [system-design-500k.md](../system-design-500k-scaling/system-design-500k.md) | Topologia Event-Driven (Multi-Zone Ingress, Webhooks WhatsApp, Idempotência/Auth no Redis, Tracing Distribuído LangFuse/DataDog, Kafka e BigQuery). |
+| **Esteira de AI Data Engineering (RAG)** | [`system-design-esteira-rag.png`](system-design-esteira-rag.png) | [system-design-500k.md](../system-design-500k-scaling/system-design-500k.md) | Pipeline de ingestão batch de PDFs e recuperação híbrida em tempo real com re-ranking. |
+| **Orquestração por Sub-grafos** | [`system-design-orquestracao-subgrafos.png`](system-design-orquestracao-subgrafos.png) | [system-design-500k.md](../system-design-500k-scaling/system-design-500k.md) | Roteamento determinístico por modelos de decisão na borda (FinOps & Menor Latência). |
 
 ---
 

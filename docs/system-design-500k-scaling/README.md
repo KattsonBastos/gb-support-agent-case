@@ -2,7 +2,7 @@
 
 **Projeto:** Agente de Suporte à Revendedora (Plataforma Agentes GB)
 
-**Ficheiro:** `docs/system-design-500k.md`
+**Ficheiro:** `docs/system-design-500k-scaling/README.md`
 
 **Propósito:** Mapear a arquitetura TO-BE e as estratégias operacionais para suportar o crescimento até 500.000 revendedoras em simultâneo, garantindo resiliência, otimização de custos (FinOps) e integração bidirecional inteligente com o Data Lake (BigQuery).
 
@@ -25,7 +25,7 @@ Para balizar as decisões de design, a arquitetura obedece aos seguintes requisi
 
 ## 2. Diagrama Arquitetural TO-BE (Cloud Architecture)
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-cloud-architecture.png](diagrams/system-design-cloud-architecture.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-cloud-architecture.png](../diagrams/system-design-cloud-architecture.png).
 
 ```mermaid
 flowchart TD
@@ -87,7 +87,7 @@ flowchart TD
 ## 3. AI Data Engineering (A Esteira do RAG)
 Para garantir respostas precisas sobre os catálogos promocionais sem estourar o limite de tokens ou aumentar a latência, a arquitetura implementa um pipeline robusto de preparação de dados.
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-esteira-rag.png](diagrams/system-design-esteira-rag.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-esteira-rag.png](../diagrams/system-design-esteira-rag.png).
 
 ```mermaid
 flowchart TD
@@ -133,7 +133,7 @@ flowchart TD
 
 Para suportar 500k conexões, abandona-se o loop autônomo ReAct puro (que consome muitos tokens e idas e vindas) em favor de uma **Arquitetura de Sub-grafos Roteada**. Modelos de decisão estruturada (como Laya ou Jev) avaliam o estado inicial e acionam apenas o fluxo estritamente necessário.
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-orquestracao-subgrafos.png](diagrams/system-design-orquestracao-subgrafos.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/system-design-orquestracao-subgrafos.png](../diagrams/system-design-orquestracao-subgrafos.png).
 
 ```mermaid
 flowchart TD

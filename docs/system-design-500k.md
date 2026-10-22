@@ -38,6 +38,7 @@ flowchart TD
     Router["Decision Model<br/>Laya / Jev"]
     Broker["Mensageria<br/>Kafka / GCP PubSub"]
     Workers["LangGraph Workers<br/>Kubernetes HPA"]
+    Tracing["Distributed Tracing<br/>(LangFuse / DataDog)"]
     
     %% Conhecimento e Ações
     RAG[("Vector Database<br/>Pinecone / Vertex AI")]
@@ -62,6 +63,9 @@ flowchart TD
     Router -->|"3. Envia Tarefa Roteada"| Broker
     Broker -->|"4. Consome Tarefa (Pull)"| Workers
     Workers <-->|"5. Restaura/Salva Thread (Checkpointer)"| RedisCache
+    
+    %% Observabilidade
+    Workers -.->|"Tracing de Execução (Spans/Tokens)"| Tracing
     
     %% Raciocínio e Tools
     Workers <-->|"6. Busca Hibrida RAG"| RAG
@@ -114,9 +118,9 @@ flowchart TD
 | **Processamento (Motor)** | Síncrono no `app_graph.astream_events()`. | **LangGraph Workers** isolados no Kubernetes, consumindo fila do Kafka/PubSub e escalando via HPA. | Permite escalar a inferência de IA independentemente do tráfego de rede da borda. |
 | **Base de Conhecimento** | ChromaDB (Local / Em memória). | **Pinecone / Vertex AI Search** com indexação HNSW e Busca Híbrida. | Evita estouros de memória e garante latência sub-segundo. |
 | **Acesso a Dados (Tools)** | Mock/API Síncrona. | **Híbrido: APIs de ERP (Tempo Real) + FastDB via Reverse ETL (Analítico).** | Garante que o estoque seja exato (sem defasagem) enquanto indicadores do ciclo vêm de um banco de leitura otimizado e separado do BigQuery (OLAP). |
-| **Memória de Sessão** | Variáveis em memória ou DB SQL padrão. | **LangGraph Checkpointer apontado para o Redis Cluster.** | Permite que qualquer Worker retome o contexto exato da revendedora (Thread ID), essencial em sistemas distribuídos. |
+| **Memória de Sessão** | Variáveis em memória ou DB SQL padrão. | **LangGraph Checkpointer apontado para o Redis Cluster (com TTL).** | Permite que qualquer Worker retome o contexto exato da revendedora. O TTL evita o esgotamento de memória. |
 | **Segurança e Guardrails** | Prompting simples (System Prompt). | **Output Guardrails (LlamaGuard/NeMo)** processando a saída antes do envio SSE. | Garante conformidade de nível enterprise, impedindo o vazamento de PII e Margens de Lucro mesmo se houver alucinação do LLM. |
-| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Envio em Batch/Pós-interação via PubSub -> Dataflow -> BigQuery.** | Enviar tokens individuais por streaming para telemetria onera a infraestrutura. Os logs são agregados na conclusão do grafo. |
+| **Telemetria / Observabilidade** | Logs transacionais granulares em tempo real. | **Tracing (LangFuse) para LLMOps + Envio em Batch (PubSub -> BigQuery).** | O tracing rastreia os Workers, enquanto logs de negócio vão em lote, poupando a infraestrutura de streaming. |
 
 ## 5. Mecanismos de Defesa e Otimização (FinOps)
 
@@ -163,7 +167,7 @@ flowchart TD
 
 Para operar em território nacional via WhatsApp, a arquitetura incorpora padrões de resiliência e segurança de nível enterprise:
 
-1. **Autenticação e Identidade (WhatsApp):** O número de telefone (MSISDN) atua como identidade primária. O API Gateway/Webhook realiza um lookup em cache (Redis) do MSISDN contra a base de revendedoras ativas. Após validação, a sessão é atrelada a um `thread_id` seguro no LangGraph, garantindo isolamento total de contexto e impedindo acesso cruzado a dados de terceiros.
+1. **Autenticação e Identidade (WhatsApp):** O número de telefone (MSISDN) atua como identidade primária. O API Gateway/Webhook realiza um lookup em cache (Redis) do MSISDN contra a base de revendedoras ativas. Após validação, a sessão é atrelada a um `thread_id` seguro no LangGraph, garantindo isolamento total de contexto e impedindo acesso cruzado a dados de terceiros. **Aplica-se um TTL (Time-To-Live) estrito nestas chaves para evitar o esgotamento de memória do cluster Redis com o histórico de 500k sessões ativas.**
 
 2. **Idempotência (Proteção contra Retries):** Redes móveis oscilantes forçam o WhatsApp a reenviar webhooks se não receberem um HTTP 200 rápido. O sistema utiliza o ID único da mensagem como chave de idempotência no Redis. O *Router* verifica essa chave antes de publicar no *Broker*; duplicatas são descartadas silenciosamente, evitando processamento repetido e queima desnecessária de tokens LLM.
 
@@ -172,6 +176,8 @@ Para operar em território nacional via WhatsApp, a arquitetura incorpora padrõ
 4. **Trade-offs Arquiteturais:**
     * **Complexidade vs. Escala:** A transição de um FastAPI síncrono para *Workers* desacoplados consumindo Kafka permite a escala para 500k acessos, mas introduz complexidade operacional (monitoramento de lag de fila, tracing distribuído e gestão de falhas assíncronas).
     * **Custo vs. Frescor de Dados:** Consultar o ERP em tempo real para status de pedidos garante máxima precisão, mas pode sobrecarregar sistemas legados. O trade-off adotado foi separar a leitura: dados analíticos (indicadores do ciclo) são servidos por um banco rápido (FastDB) alimentado via *Reverse ETL*, poupando o ERP e reduzindo latência.
+
+5. **Observabilidade e Tracing Distribuído (LLMOps):** Dada a natureza assíncrona (Kafka/Workers), o rastreamento das requisições é feito via ferramentas de APM e LLMOps (ex: LangFuse, DataDog). Isso permite monitorar o custo de tokens por nó do LangGraph, o tempo de execução das tools e a latência (TTFT) de ponta a ponta, facilitando imensamente o *debug* de chamadas complexas.
 
 ## 8. Premissas e Limites de Escopo (Assumptions)
 

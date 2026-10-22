@@ -9,7 +9,7 @@
 
 **Desafio Técnico:** O orquestrador deve decidir não usar uma API transacional, mas sim realizar uma busca vetorial no catálogo do ciclo (fonte original em PDF, transcrita em Markdown no MVP para ingestão).
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-consulta-catalogo.png](../diagrams/sequencia-consulta-catalogo.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-consulta-catalogo.png](../../diagrams/sequencia-consulta-catalogo.png).
 
 ```mermaid
 sequenceDiagram
@@ -54,7 +54,7 @@ sequenceDiagram
 
 **Desafio Técnico:** Extrair os parâmetros corretos do texto (Ex: Código do Pedido) e invocar a função Mock com injeção mandatória do CPF autenticado na sessão, sem confiar em CPFs digitados no chat.
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-consulta-transacional.png](../diagrams/sequencia-consulta-transacional.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-consulta-transacional.png](../../diagrams/sequencia-consulta-transacional.png).
 
 ```mermaid
 sequenceDiagram
@@ -109,7 +109,7 @@ sequenceDiagram
 
 **Desafio Técnico:** O sistema deve abortar a execução de Tools e retornar uma negativa imediata e educada, conforme a exigência estrita do case.
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-guardrail-pii.png](../diagrams/sequencia-guardrail-pii.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/sequencia-guardrail-pii.png](../../diagrams/sequencia-guardrail-pii.png).
 
 ```mermaid
 sequenceDiagram

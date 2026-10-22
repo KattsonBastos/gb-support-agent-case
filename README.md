@@ -36,14 +36,18 @@ A solução foi arquitetada utilizando o padrão <strong>ReAct (Reasoning and Ac
 Para garantir a escalabilidade técnica e a segurança operacional exigidas pelo negócio, a arquitetura foi mapeada e documentada seguindo padrões da indústria.
 </p>
 
-*   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/c4-model/](docs/c4-model/).
-*   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/c4-model/03-sequencia-casos-uso.md](docs/c4-model/03-sequencia-casos-uso.md).
-*   **Galeria de Imagens dos Diagramas:** Imagens renderizadas de todos os diagramas da arquitetura para visualização direta caso o Mermaid não renderize no GitHub: [docs/diagrams/](docs/diagrams/).
+*   **System Design (MVP):** Toda a arquitetura do MVP, especificações técnicas, diagramas e decisões arquiteturais estão centralizadas em [docs/system-design-mvp/](docs/system-design-mvp/):
+    *   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/system-design-mvp/c4-model/](docs/system-design-mvp/c4-model/).
+    *   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/system-design-mvp/c4-model/03-sequencia-casos-uso.md](docs/system-design-mvp/c4-model/03-sequencia-casos-uso.md).
+    *   **ADRs do MVP:** As decisões críticas que moldaram este MVP estão detalhadas em [docs/system-design-mvp/adrs/](docs/system-design-mvp/adrs/). Destacam-se:
+        *   [`ADR-001`](docs/system-design-mvp/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
+        *   [`ADR-002`](docs/system-design-mvp/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
+        *   [`ADR-003`](docs/system-design-mvp/adrs/003-guardrails-pii.md): Defesa em Profundidade (Guardrails) para Proteção de PII e Margens de Lucro.
+        *   [`ADR-004`](docs/system-design-mvp/adrs/004-rag-strategy.md): Estratégia de Ingestão e Chunking para RAG.
+        *   [`ADR-005`](docs/system-design-mvp/adrs/005-llmops.md): LLMOps e Observabilidade de Execução (Langfuse).
+    *   **Guia de Testes de Prompts:** Cenários e roteiro para validação interativa no chat em [docs/system-design-mvp/prompts-testing/](docs/system-design-mvp/prompts-testing/).
 *   **System Design (Escala 500k):** Arquitetura TO-BE orientada a eventos, esteira de RAG, integração com Data Lake e [ADRs de Escala](docs/system-design-500k-scaling/adrs/) em [docs/system-design-500k-scaling/](docs/system-design-500k-scaling/).
-*   **ADRs (Architecture Decision Records):** As decisões críticas que moldaram este MVP estão detalhadas em [docs/adrs/](docs/adrs/). Destacam-se:
-    *   [`ADR-001`](docs/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
-    *   [`ADR-002`](docs/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
-    *   [`ADR-003`](docs/adrs/003-guardrails-pii.md): Defesa em Profundidade (Guardrails) para Proteção de PII e Margens de Lucro.
+*   **Galeria de Imagens dos Diagramas:** Imagens renderizadas de todos os diagramas da arquitetura para visualização direta caso o Mermaid não renderize no GitHub: [docs/diagrams/](docs/diagrams/).
 
 ## 3. Instruções para Rodar Localmente
 <p align="justify">
@@ -82,7 +86,7 @@ O projeto foi integralmente dockerizado para facilitar a execução local. Os ba
 
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;
-O projeto foi desenvolvido sob a abordagem de <strong>Spec-Driven Development (SDD) assistido por IA</strong>, combinando o ambiente agentic do <strong>Google Antigravity IDE</strong> (orquestrando o modelo <strong>Gemini 3.8 Flash</strong> para implementação/scaffolding e o <strong>Claude Opus 5.5</strong> para revisão final do código e documentação) e o <strong>Gemini Chat (Modelo Pro)</strong> para discussões conceituais, decisões arquiteturais ([ADRs](docs/adrs)) e diagramação do [Modelo C4](docs/c4-model). A disciplina do SDD e a intervenção ativa <em>Human-in-the-Loop</em> — especialmente no tratamento de fluxos assíncronos de streaming SSE no LangGraph e na aplicação estrita de guardrails de PII — garantiram alta velocidade de entrega (~75% de ganho de produtividade) com robustez corporativa.
+O projeto foi desenvolvido sob a abordagem de <strong>Spec-Driven Development (SDD) assistido por IA</strong>, combinando o ambiente agentic do <strong>Google Antigravity IDE</strong> (orquestrando o modelo <strong>Gemini 3.8 Flash</strong> para implementação/scaffolding e o <strong>Claude Opus 5.5</strong> para revisão final do código e documentação) e o <strong>Gemini Chat (Modelo Pro)</strong> para discussões conceituais, decisões arquiteturais ([ADRs](docs/system-design-mvp/adrs)) e diagramação do [Modelo C4](docs/system-design-mvp/c4-model). A disciplina do SDD e a intervenção ativa <em>Human-in-the-Loop</em> — especialmente no tratamento de fluxos assíncronos de streaming SSE no LangGraph e na aplicação estrita de guardrails de PII — garantiram alta velocidade de entrega (~75% de ganho de produtividade) com robustez corporativa.
 </p>
 
 > O relatório técnico completo, detalhando as ferramentas, engenharia de prompts, desafios enfrentados, intervenções humanas e lições aprendidas, está disponível em:  

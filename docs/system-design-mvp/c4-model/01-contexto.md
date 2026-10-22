@@ -8,7 +8,7 @@ O **Motor Transacional (Agente)** atua como um assistente virtual conversacional
 
 ## Diagrama
 
-> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/c4-contexto.png](../diagrams/c4-contexto.png).
+> 🔗 **Visualização alternativa:** Caso o diagrama Mermaid não carregue corretamente no GitHub, você pode visualizar a imagem estática em [docs/diagrams/c4-contexto.png](../../diagrams/c4-contexto.png).
 
 ```mermaid
 C4Context

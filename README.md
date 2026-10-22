@@ -39,7 +39,7 @@ Para garantir a escalabilidade técnica e a segurança operacional exigidas pelo
 *   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/c4-model/](docs/c4-model/).
 *   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/c4-model/03-sequencia-casos-uso.md](docs/c4-model/03-sequencia-casos-uso.md).
 *   **Galeria de Imagens dos Diagramas:** Imagens renderizadas de todos os diagramas da arquitetura para visualização direta caso o Mermaid não renderize no GitHub: [docs/diagrams/](docs/diagrams/).
-*   **System Design (Escala 500k):** Arquitetura TO-BE orientada a eventos, esteira de RAG e integração com Data Lake em [docs/system-design-500k-scaling/system-design-500k.md](docs/system-design-500k-scaling/system-design-500k.md).
+*   **System Design (Escala 500k):** Arquitetura TO-BE orientada a eventos, esteira de RAG e integração com Data Lake em [docs/system-design-500k-scaling/](docs/system-design-500k-scaling/).
 *   **ADRs (Architecture Decision Records):** As decisões críticas que moldaram este MVP estão detalhadas em [docs/adrs/](docs/adrs/). Destacam-se:
     *   [`ADR-001`](docs/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
     *   [`ADR-002`](docs/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
@@ -100,4 +100,4 @@ A estratégia de transição do MVP para a escala de 500.000 revendedoras simult
 *   **FinOps & Sub-grafos Especializados:** Substituição do loop ReAct puro por sub-grafos acionados por modelos de decisão na borda, com *Semantic Caching* no Redis e *Output Guardrails* dedicados (mitigando vazamentos de PII e margem).
 
 > O detalhamento completo da arquitetura TO-BE, esteira de AI Data Engineering (RAG), matriz de evolução (AS-IS vs TO-BE) e diagramas Mermaid estão disponíveis em:  
-> 📄 **[docs/system-design-500k-scaling/system-design-500k.md](docs/system-design-500k-scaling/system-design-500k.md)**
+> 📄 **[docs/system-design-500k-scaling/README.md](docs/system-design-500k-scaling/README.md)**

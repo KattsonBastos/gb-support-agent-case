@@ -102,6 +102,9 @@ A estratégia de transição do MVP para a escala de 500.000 revendedoras simult
     *   [`ADR-001`](docs/system-design-500k-scaling/adrs/adr_001_padrao_orquestracao_multi_agent_vs_subgrafos.md): Padrão de Orquestração (Multi-Agent ReAct vs. Semantic Routing com Subgrafos).
     *   [`ADR-002`](docs/system-design-500k-scaling/adrs/adr_002_infraestrutura_de_processamento_kubernetes_vs_serverless.md): Infraestrutura de Processamento (Kubernetes GKE + KEDA vs. Serverless Cloud Run).
     *   [`ADR-003`](docs/system-design-500k-scaling/adrs/adr_003_mensageria_e_desacoplamento_apache_kafka_vs_gcp_pub_sub.md): Mensageria e Desacoplamento (Apache Kafka vs. Google Cloud Pub/Sub).
+    *   [`ADR-004`](docs/system-design-500k-scaling/adrs/adr_004_padrao_de_acesso_a_dados_apis_diretas_vs_reverse_etl_cqrs.md): Padrão de Acesso a Dados (APIs Transacionais Diretas vs. CQRS e Reverse ETL).
+    *   [`ADR-005`](docs/system-design-500k-scaling/adrs/adr_005_gestao_de_estado_redis_vs_postgresql.md): Gestão de Estado e Checkpointer (Redis Cluster vs. PostgreSQL).
+    *   [`ADR-006`](docs/system-design-500k-scaling/adrs/adr_006_finops_e_inferencia_pay_as_you_go_vs_provisioned_throughput.md): FinOps e Inferência de LLMs (Pay-as-you-go vs. Provisioned Throughput / vLLM).
 
 > O detalhamento completo da arquitetura TO-BE, esteira de AI Data Engineering (RAG), matriz de evolução (AS-IS vs TO-BE) e diagramas Mermaid estão disponíveis em:  
 > 📄 **[docs/system-design-500k-scaling/README.md](docs/system-design-500k-scaling/README.md)**

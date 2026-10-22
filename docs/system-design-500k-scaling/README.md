@@ -193,3 +193,6 @@ Para aprofundar os trade-offs e justificativas técnicas detalhadas de cada pila
 * **[`ADR-001`](./adrs/adr_001_padrao_orquestracao_multi_agent_vs_subgrafos.md):** Padrão de Orquestração — Multi-Agent (ReAct) vs. Semantic Routing com Subgrafos.
 * **[`ADR-002`](./adrs/adr_002_infraestrutura_de_processamento_kubernetes_vs_serverless.md):** Infraestrutura de Processamento — Kubernetes (GKE) + KEDA vs. Serverless (Cloud Run).
 * **[`ADR-003`](./adrs/adr_003_mensageria_e_desacoplamento_apache_kafka_vs_gcp_pub_sub.md):** Mensageria e Desacoplamento — Apache Kafka vs. Google Cloud Pub/Sub.
+* **[`ADR-004`](./adrs/adr_004_padrao_de_acesso_a_dados_apis_diretas_vs_reverse_etl_cqrs.md):** Padrão de Acesso a Dados (Tools) — APIs Transacionais Diretas vs. CQRS e Reverse ETL.
+* **[`ADR-005`](./adrs/adr_005_gestao_de_estado_redis_vs_postgresql.md):** Gestão de Estado (LangGraph Checkpointer) — Redis Cluster vs. PostgreSQL.
+* **[`ADR-006`](./adrs/adr_006_finops_e_inferencia_pay_as_you_go_vs_provisioned_throughput.md):** FinOps e Estratégia de Inferência — Pay-as-you-go vs. Provisioned Throughput (vLLM).

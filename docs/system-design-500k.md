@@ -30,10 +30,10 @@ Para balizar as decisões de design, a arquitetura obedece aos seguintes requisi
 ```mermaid
 flowchart TD
     %% Nós de Borda e Orquestração
-    R["Revendedora 500k"]
-    LB["Load Balancer / Ingress<br/>(Envoy / NGINX Tuned)"]
-    API["API Gateway - FastAPI Edge<br/>(Gestão Exclusiva SSE)"]
-    RedisCache[("Redis Cluster<br/>Semantic Cache & Checkpointer")]
+    R["Revendedora 500k<br/>(WhatsApp / App)"]
+    LB["Load Balancer / Ingress<br/>(Multi-Zone / NGINX Tuned)"]
+    API["API Gateway - Edge<br/>(Webhooks & Gestão SSE)"]
+    RedisCache[("Redis Cluster<br/>Auth, Idempotência, Cache & Checkpointer")]
     RedisPubSub(("Redis Pub/Sub<br/>SSE Streaming"))
     Router["Decision Model<br/>Laya / Jev"]
     Broker["Mensageria<br/>Kafka / GCP PubSub"]
@@ -50,17 +50,17 @@ flowchart TD
     Airflow["Pipelines de Dados<br/>Airflow / dbt"]
 
     %% Fluxos de Interação
-    R <-->|"Streaming SSE Long-polling"| LB
+    R <-->|"Webhook Payload / SSE"| LB
     LB <--> API
     
-    %% Roteamento na Borda
-    API -->|"1. Verifica Semantic Cache"| RedisCache
-    RedisCache -.->|"Cache Hit - Resposta Imediata"| API
+    %% Validações de Borda (Auth, Idempotência e Cache)
+    API -->|"1. Valida MSISDN, Idempotência e Semantic Cache"| RedisCache
+    RedisCache -.->|"2a. Duplicata / Cache Hit -> Resposta Imediata"| API
     
     %% Fluxo Assíncrono
-    API -->|"2. Cache Miss: Classifica Intenção"| Router
+    API -->|"2b. Requisição Válida: Classifica Intenção"| Router
     Router -->|"3. Envia Tarefa Roteada"| Broker
-    Broker -->|"4. Consome Tarefa"| Workers
+    Broker -->|"4. Consome Tarefa (Pull)"| Workers
     Workers <-->|"5. Restaura/Salva Thread (Checkpointer)"| RedisCache
     
     %% Raciocínio e Tools

@@ -146,3 +146,12 @@ flowchart TD
     Guardrail -->|"Aprovado"| Output["Publica Chunks no Redis Pub/Sub"]
     Reject --> Output
 ```
+
+
+## 7. Premissas e Limites de Escopo (Assumptions)
+
+Para manter o foco do design arquitetural nos componentes core de orquestração de IA e mensageria distribuída, algumas capacidades enterprise foram abstraídas sob a premissa de que a corporação já as possui nativamente em seu ecossistema centralizado e mantido por times de Plataforma:
+
+1. **AI Gateway & Model Router:** Não se detalhou a inclusão de um AI Gateway (ex: LiteLLM, Kong AI) para fazer o roteamento e gerenciamento de modelos. Assume-se que a Plataforma de Agentes da empresa já provê essa infraestrutura para gerenciar chaves, *fallbacks*, versionamento e load balancing entre os provedores de LLM.
+
+2. **Controle de Token Budget & Rate Limiting:** A gestão financeira granular de cota por squad (Token Budgeting) e as estratégias de *rate limit* (ex: algoritmos de *Leaky Bucket* ou *Token Bucket* para inferência) não foram modeladas diretamente nesta arquitetura de aplicação, assumindo-se que essas regras de governança e *throttling* já são aplicadas no perímetro do AI Gateway corporativo existente.

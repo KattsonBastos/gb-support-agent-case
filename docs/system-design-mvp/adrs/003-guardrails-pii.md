@@ -1,8 +1,7 @@
 # ADR-003: Implementação de Guardrails de Segurança (PII e Margem)
 
-**Data:** 17/10/2026
-
-**Status:** Aceito
+- **Data:** 17/10/2026
+- **Status:** Aceito
 
 ## Contexto
 É um requisito inegociável do negócio impedir o vazamento de Dados Pessoais (PII) e garantir o sigilo comercial, impedindo o modelo de calcular ou fornecer informações de margem de lucro de outras consultoras.

@@ -36,13 +36,18 @@ A solução foi arquitetada utilizando o padrão <strong>ReAct (Reasoning and Ac
 Para garantir a escalabilidade técnica e a segurança operacional exigidas pelo negócio, a arquitetura foi mapeada e documentada seguindo padrões da indústria.
 </p>
 
-*   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/c4-model/](docs/c4-model/).
-*   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/c4-model/03-sequencia-casos-uso.md](docs/c4-model/03-sequencia-casos-uso.md).
+*   **System Design (MVP):** Toda a arquitetura do MVP, especificações técnicas, diagramas e decisões arquiteturais estão centralizadas em [docs/system-design-mvp/](docs/system-design-mvp/):
+    *   **Modelo C4:** Os diagramas de Contexto e Container (em Mermaid) estão disponíveis em [docs/system-design-mvp/c4-model/](docs/system-design-mvp/c4-model/).
+    *   **Diagramas de Sequência:** O detalhamento técnico dos casos de uso (Pré-venda, Consulta Transacional e Disparo de Guardrails) pode ser consultado em [docs/system-design-mvp/c4-model/03-sequencia-casos-uso.md](docs/system-design-mvp/c4-model/03-sequencia-casos-uso.md).
+    *   **ADRs do MVP:** As decisões críticas que moldaram este MVP estão detalhadas em [docs/system-design-mvp/adrs/](docs/system-design-mvp/adrs/). Destacam-se:
+        *   [`ADR-001`](docs/system-design-mvp/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
+        *   [`ADR-002`](docs/system-design-mvp/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
+        *   [`ADR-003`](docs/system-design-mvp/adrs/003-guardrails-pii.md): Defesa em Profundidade (Guardrails) para Proteção de PII e Margens de Lucro.
+        *   [`ADR-004`](docs/system-design-mvp/adrs/004-rag-strategy.md): Estratégia de Ingestão e Chunking para RAG.
+        *   [`ADR-005`](docs/system-design-mvp/adrs/005-llmops.md): LLMOps e Observabilidade de Execução (Langfuse).
+    *   **Guia de Testes de Prompts:** Cenários e roteiro para validação interativa no chat em [docs/system-design-mvp/prompts-testing/](docs/system-design-mvp/prompts-testing/).
+*   **System Design (Escala 500k):** Arquitetura TO-BE orientada a eventos, esteira de RAG, integração com Data Lake e [ADRs de Escala](docs/system-design-500k-scaling/adrs/) em [docs/system-design-500k-scaling/](docs/system-design-500k-scaling/).
 *   **Galeria de Imagens dos Diagramas:** Imagens renderizadas de todos os diagramas da arquitetura para visualização direta caso o Mermaid não renderize no GitHub: [docs/diagrams/](docs/diagrams/).
-*   **ADRs (Architecture Decision Records):** As decisões críticas que moldaram este MVP estão detalhadas em [docs/adrs/](docs/adrs/). Destacam-se:
-    *   [`ADR-001`](docs/adrs/001-gestao-estado.md): Estratégia de Gestão de Estado e Isolamento de Sessão (Transição de Memória Local para Redis).
-    *   [`ADR-002`](docs/adrs/002-streaming-sse.md): Comunicação Assíncrona via Streaming SSE.
-    *   [`ADR-003`](docs/adrs/003-guardrails-pii.md): Defesa em Profundidade (Guardrails) para Proteção de PII e Margens de Lucro.
 
 ## 3. Instruções para Rodar Localmente
 <p align="justify">
@@ -81,7 +86,7 @@ O projeto foi integralmente dockerizado para facilitar a execução local. Os ba
 
 <p align="justify">
 &ensp;&ensp;&ensp;&ensp;
-O projeto foi desenvolvido sob a abordagem de <strong>Spec-Driven Development (SDD) assistido por IA</strong>, combinando o ambiente agentic do <strong>Google Antigravity IDE</strong> (orquestrando o modelo <strong>Gemini 3.8 Flash</strong> para implementação/scaffolding e o <strong>Claude Opus 5.5</strong> para revisão final do código e documentação) e o <strong>Gemini Chat (Modelo Pro)</strong> para discussões conceituais, decisões arquiteturais ([ADRs](docs/adrs)) e diagramação do [Modelo C4](docs/c4-model). A disciplina do SDD e a intervenção ativa <em>Human-in-the-Loop</em> — especialmente no tratamento de fluxos assíncronos de streaming SSE no LangGraph e na aplicação estrita de guardrails de PII — garantiram alta velocidade de entrega (~75% de ganho de produtividade) com robustez corporativa.
+O projeto foi desenvolvido sob a abordagem de <strong>Spec-Driven Development (SDD) assistido por IA</strong>, combinando o ambiente agentic do <strong>Google Antigravity IDE</strong> (orquestrando o modelo <strong>Gemini 3.8 Flash</strong> para implementação/scaffolding e o <strong>Claude Opus 5.5</strong> para revisão final do código e documentação) e o <strong>Gemini Chat (Modelo Pro)</strong> para discussões conceituais, decisões arquiteturais ([ADRs](docs/system-design-mvp/adrs)) e diagramação do [Modelo C4](docs/system-design-mvp/c4-model). A disciplina do SDD e a intervenção ativa <em>Human-in-the-Loop</em> — especialmente no tratamento de fluxos assíncronos de streaming SSE no LangGraph e na aplicação estrita de guardrails de PII — garantiram alta velocidade de entrega (~75% de ganho de produtividade) com robustez corporativa.
 </p>
 
 > O relatório técnico completo, detalhando as ferramentas, engenharia de prompts, desafios enfrentados, intervenções humanas e lições aprendidas, está disponível em:  
@@ -97,6 +102,13 @@ A estratégia de transição do MVP para a escala de 500.000 revendedoras simult
 *   **Arquitetura Desacoplada (Event-Driven):** O FastAPI Edge gerencia exclusivamente as conexões SSE via Redis Pub/Sub, delegando o processamento pesado do LangGraph para workers assíncronos no Kubernetes via Kafka/PubSub.
 *   **Estratégia Híbrida de Dados & BigQuery:** Consultas em tempo real ao ERP (estoque e pedidos) combinadas a leituras de baixa latência em FastDB (alimentado via *Reverse ETL* do BigQuery). Telemetria analítica enviada em batch assíncrono pós-interação via Dataflow.
 *   **FinOps & Sub-grafos Especializados:** Substituição do loop ReAct puro por sub-grafos acionados por modelos de decisão na borda, com *Semantic Caching* no Redis e *Output Guardrails* dedicados (mitigando vazamentos de PII e margem).
+*   **Decisões Arquiteturais de Escala ([ADRs](docs/system-design-500k-scaling/adrs)):** Os trade-offs fundamentais desta evolução estão documentados no diretório [`docs/system-design-500k-scaling/adrs/`](docs/system-design-500k-scaling/adrs/):
+    *   [`ADR-001`](docs/system-design-500k-scaling/adrs/adr_001_padrao_orquestracao_multi_agent_vs_subgrafos.md): Padrão de Orquestração (Multi-Agent ReAct vs. Semantic Routing com Subgrafos).
+    *   [`ADR-002`](docs/system-design-500k-scaling/adrs/adr_002_infraestrutura_de_processamento_kubernetes_vs_serverless.md): Infraestrutura de Processamento (Kubernetes GKE + KEDA vs. Serverless Cloud Run).
+    *   [`ADR-003`](docs/system-design-500k-scaling/adrs/adr_003_mensageria_e_desacoplamento_apache_kafka_vs_gcp_pub_sub.md): Mensageria e Desacoplamento (Apache Kafka vs. Google Cloud Pub/Sub).
+    *   [`ADR-004`](docs/system-design-500k-scaling/adrs/adr_004_padrao_de_acesso_a_dados_apis_diretas_vs_reverse_etl_cqrs.md): Padrão de Acesso a Dados (APIs Transacionais Diretas vs. CQRS e Reverse ETL).
+    *   [`ADR-005`](docs/system-design-500k-scaling/adrs/adr_005_gestao_de_estado_redis_vs_postgresql.md): Gestão de Estado e Checkpointer (Redis Cluster vs. PostgreSQL).
+    *   [`ADR-006`](docs/system-design-500k-scaling/adrs/adr_006_finops_e_inferencia_pay_as_you_go_vs_provisioned_throughput.md): FinOps e Inferência de LLMs (Pay-as-you-go vs. Provisioned Throughput / vLLM).
 
 > O detalhamento completo da arquitetura TO-BE, esteira de AI Data Engineering (RAG), matriz de evolução (AS-IS vs TO-BE) e diagramas Mermaid estão disponíveis em:  
-> 📄 **[docs/system-design-500k.md](docs/system-design-500k.md)**
+> 📄 **[docs/system-design-500k-scaling/README.md](docs/system-design-500k-scaling/README.md)**

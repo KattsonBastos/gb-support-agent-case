@@ -1,8 +1,7 @@
 # ADR-001: Gestão de Estado e Memória em Larga Escala
 
-**Data:** 17/10/2026
-
-**Status:** Aceito
+- **Data:** 17/10/2026
+- **Status:** Aceito
 
 ## Contexto
 O agente precisa manter o contexto da conversa isolado por revendedora (`session_id` ou `thread_id`). Para o MVP local, armazenar esse estado na memória RAM resolve o problema. Contudo, o sistema deve ser desenhado para escalar até 500 mil revendedoras simultâneas, cenário onde instâncias múltiplas do FastAPI precisarão compartilhar o estado da conversa, e manter históricos longos estourará a janela de contexto do LLM.

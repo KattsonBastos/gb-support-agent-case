@@ -27,7 +27,7 @@ flowchart LR
 
 O ecossistema de ferramentas foi estruturado combinando modelos especializados para ideação, implementação e revisão técnica:
 
-* **Gemini Chat (Modelo Pro):** Utilizado para análise de requisitos de negócio, ideação, elaboração inicial dos documentos arquiteturais ([ADRs](adrs) e [Modelo C4](c4-model)) e discussões estratégicas a nível de produto. A ideia foi simular uma discussão técnica e produto e, com base nos insumos levantados, formalizar em documentos para refinamento posterior.
+* **Gemini Chat (Modelo Pro):** Utilizado para análise de requisitos de negócio, ideação, elaboração inicial dos documentos arquiteturais ([ADRs](system-design-mvp/adrs) e [Modelo C4](system-design-mvp/c4-model)) e discussões estratégicas a nível de produto. A ideia foi simular uma discussão técnica e produto e, com base nos insumos levantados, formalizar em documentos para refinamento posterior.
 
 * **Google Antigravity IDE (Ambiente de Desenvolvimento Agentic):**
   * **Gemini 3.8 Flash:** Modelo orquestrado diretamente na IDE para implementação técnica, geração de código e boilerplate, e execução do *Spec-Driven Development (SDD)*. Dado que os requisitos iniciais do produto estavam bem mapeados e decisões arquiteturais bem definidas, a escolha de um modelo menor se mostrou eficiente, entregando velocidade e precisão, mantendo um consumo menor de tokens.

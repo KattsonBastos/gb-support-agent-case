@@ -196,3 +196,6 @@ Para aprofundar os trade-offs e justificativas técnicas detalhadas de cada pila
 * **[`ADR-004`](./adrs/adr_004_padrao_de_acesso_a_dados_apis_diretas_vs_reverse_etl_cqrs.md):** Padrão de Acesso a Dados (Tools) — APIs Transacionais Diretas vs. CQRS e Reverse ETL.
 * **[`ADR-005`](./adrs/adr_005_gestao_de_estado_redis_vs_postgresql.md):** Gestão de Estado (LangGraph Checkpointer) — Redis Cluster vs. PostgreSQL.
 * **[`ADR-006`](./adrs/adr_006_finops_e_inferencia_pay_as_you_go_vs_provisioned_throughput.md):** FinOps e Estratégia de Inferência — Pay-as-you-go vs. Provisioned Throughput (vLLM).
+* **[`ADR-007`](./adrs/adr_007_estrategia_de_caching_semantic_cache_vs_exact_match.md):** Estratégia de Caching — Semantic Cache vs. Exact-Match Caching.
+* **[`ADR-008`](./adrs/adr_008_estrategia_de_seguranaa_e_prevenco_de_vazamento_guardrails.md):** Estratégia de Segurança e Prevenção de Vazamento (Guardrails) — System Prompt vs. Output Guardrail Models.
+* **[`ADR-009`](./adrs/adr_009_estrategia_de_busca_do_rag_recuperaco_e_re_ranking.md):** Estratégia de Busca do RAG (Catálogo) — Semantic Search vs. Busca Híbrida com Re-ranking.

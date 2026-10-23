@@ -109,6 +109,9 @@ A estratégia de transição do MVP para a escala de 500.000 revendedoras simult
     *   [`ADR-004`](docs/system-design-500k-scaling/adrs/adr_004_padrao_de_acesso_a_dados_apis_diretas_vs_reverse_etl_cqrs.md): Padrão de Acesso a Dados (APIs Transacionais Diretas vs. CQRS e Reverse ETL).
     *   [`ADR-005`](docs/system-design-500k-scaling/adrs/adr_005_gestao_de_estado_redis_vs_postgresql.md): Gestão de Estado e Checkpointer (Redis Cluster vs. PostgreSQL).
     *   [`ADR-006`](docs/system-design-500k-scaling/adrs/adr_006_finops_e_inferencia_pay_as_you_go_vs_provisioned_throughput.md): FinOps e Inferência de LLMs (Pay-as-you-go vs. Provisioned Throughput / vLLM).
+    *   [`ADR-007`](docs/system-design-500k-scaling/adrs/adr_007_estrategia_de_caching_semantic_cache_vs_exact_match.md): Estratégia de Caching (Semantic Cache vs. Exact-Match Caching).
+    *   [`ADR-008`](docs/system-design-500k-scaling/adrs/adr_008_estrategia_de_seguranaa_e_prevenco_de_vazamento_guardrails.md): Estratégia de Segurança e Guardrails (System Prompt vs. Output Guardrail Models).
+    *   [`ADR-009`](docs/system-design-500k-scaling/adrs/adr_009_estrategia_de_busca_do_rag_recuperaco_e_re_ranking.md): Estratégia de Busca do RAG (Semantic Search vs. Busca Híbrida com Re-ranking).
 
 > O detalhamento completo da arquitetura TO-BE, esteira de AI Data Engineering (RAG), matriz de evolução (AS-IS vs TO-BE) e diagramas Mermaid estão disponíveis em:  
 > 📄 **[docs/system-design-500k-scaling/README.md](docs/system-design-500k-scaling/README.md)**
